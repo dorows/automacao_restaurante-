@@ -1,3 +1,4 @@
+from pedido import Pedido
 class GrupoCliente:
     _id_counter = 0
     def __init__(self, quantidade_pessoas: int):
@@ -7,3 +8,7 @@ class GrupoCliente:
 
     def __str__(self) -> str:
         return f"Grupo {self.id} ({self.quantidade_pessoas} pessoas)"
+
+    def novo_pedido(self):
+        self.pedido = Pedido
+
