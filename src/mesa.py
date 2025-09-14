@@ -18,7 +18,7 @@ class Mesa:
                 f"Status: {self.status.value} - {grupo_info}")
 
     def ocupar(self, grupo: GrupoCliente):
-        if self.status == StatusMesa.LIVRE and grupo.quantidade_pessoas <= self.capacidade:
+        if self.status == StatusMesa.LIVRE and grupo.numero_pessoas <= self.capacidade:
             self.status = StatusMesa.OCUPADA
             self.grupo_cliente = grupo
             return True
