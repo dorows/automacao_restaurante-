@@ -1,10 +1,8 @@
 from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
-    # Este import especial evita erros de importação circular
     from garcom import Garcom
 
-# Imports necessários para o funcionamento da classe
 from status_enums import StatusMesa, StatusGrupoCliente
 from grupo_cliente import GrupoCliente
 from conta import Conta
@@ -44,7 +42,6 @@ class Mesa:
         self.__garcom_responsavel = garcom
 
     def ocupar(self, grupo: GrupoCliente) -> bool:
-        """Aloca um grupo a esta mesa, se estiver livre e houver capacidade."""
         if self.status == StatusMesa.LIVRE and grupo.numero_pessoas <= self.capacidade:
             self.__status = StatusMesa.OCUPADA
             self.__grupo_cliente = grupo
@@ -56,7 +53,6 @@ class Mesa:
         return False
 
     def liberar(self):
-        """Libera a mesa, fecha a conta e marca a mesa como suja."""
         if self.status == StatusMesa.OCUPADA and self.conta:
             print(f"\nLiberando Mesa {self.id_mesa}...")
             print(self.conta.fechar_conta())
@@ -67,7 +63,6 @@ class Mesa:
             self.__conta = None
 
     def limpar(self):
-        """Marca uma mesa suja como livre e pronta para uso."""
         if self.status == StatusMesa.SUJA:
             self.__status = StatusMesa.LIVRE
             print(f"Mesa {self.id_mesa} foi limpa e está livre.")

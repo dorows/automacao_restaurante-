@@ -23,7 +23,6 @@ class Garcom(Funcionario):
             return False
 
     def remover_mesa(self, mesa: Mesa):
-        # Remove uma mesa da responsabilidade do garçom.
         if mesa in self.__mesas_atendidas:
             self.__mesas_atendidas.remove(mesa)
 

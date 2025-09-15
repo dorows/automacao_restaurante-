@@ -33,7 +33,6 @@ class Prato:
     def descricao(self, nova_descricao: str):
         self.__descricao = nova_descricao
     
-    # Método __str__ corrigido para usar as propriedades públicas
     def __str__(self):
         return f"{self.id_prato}. {self.nome} - R$ {self.preco:.2f}"
     

@@ -6,7 +6,6 @@ class FilaDeEspera:
         self._fila: List[GrupoCliente] = []
 
     def adicionar_grupo(self, grupo: GrupoCliente):
-        # Verifica se um grupo com o mesmo ID já está na fila
         for g in self._fila:
             if g.id_grupo == grupo.id_grupo:
                 print(f"Aviso: Grupo {grupo.id_grupo} já está na fila.")

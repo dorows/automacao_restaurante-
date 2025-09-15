@@ -8,14 +8,12 @@ from fila_de_espera import FilaDeEspera
 if __name__ == "__main__":
     
     print('TESTE DE MESAS')
-    # Criando os objetos
     mesa_teste = Mesa(10, 4)
     grupo1 = GrupoCliente(441,3)
     grupo_grande = GrupoCliente(442,5)
     
     print(mesa_teste)
 
-    #  Tentando ocupar com um grupo que cabe 
     print("\nTentando ocupar a mesa com grupo pequeno...")
     if mesa_teste.ocupar(grupo1):
         print("deu certo como esperado.")
@@ -33,7 +31,6 @@ if __name__ == "__main__":
     mesa_teste.limpar()
     print(mesa_teste)
     
-    # 5. Tentando ocupar com um grupo que NÃO cabe (deve falhar)
     print("\ntentando ocupar a mesa com grupo grande...")
     if mesa_teste.ocupar(grupo_grande):
         print("Deu certo")
