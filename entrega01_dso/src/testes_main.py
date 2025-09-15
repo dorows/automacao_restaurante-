@@ -132,6 +132,3 @@ if __name__ == "__main__":
     print(fila)
     print(f"Tamanho final da fila: {len(fila)}")
     print("-" * 30)
-
-    
-
