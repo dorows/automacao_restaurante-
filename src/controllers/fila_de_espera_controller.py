@@ -1,8 +1,4 @@
-# controllers/fila_controller.py
-
 from typing import Optional
-
-# Importa os modelos que este controlador gerencia
 from models.fila_de_espera import FilaDeEspera
 from models.grupo_cliente import GrupoCliente
 

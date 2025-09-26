@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 
 class Mesa:
     def __init__(self, id_mesa: int, capacidade: int):
-        # Usando a convenção de 1 underline para consistência
         self._id_mesa: int = id_mesa
         self._capacidade: int = capacidade
         self._status: StatusMesa = StatusMesa.LIVRE
@@ -20,7 +19,6 @@ class Mesa:
         self._conta: Optional[Conta] = None
         self._garcom_responsavel: Optional[Garcom] = None
 
-    # --- Properties (Getters) ---
     @property
     def id_mesa(self) -> int:
         return self._id_mesa
@@ -43,12 +41,9 @@ class Mesa:
 
     @property
     def conta(self) -> Optional[Conta]:
-        """Este é o GETTER para a conta."""
         return self._conta
 
-    # --- Setters ---
-    
-    # >> A CORREÇÃO PRINCIPAL ESTÁ AQUI <<
+
     @conta.setter
     def conta(self, nova_conta: Optional[Conta]):
 
@@ -61,9 +56,7 @@ class Mesa:
     def garcom_responsavel(self, garcom: Optional[Garcom]):
         self._garcom_responsavel = garcom
 
-    # --- Métodos de Ação ---
     def ocupar(self, grupo: GrupoCliente) -> bool:
-        """Altera o status da mesa e associa um grupo de clientes."""
         if self.status == StatusMesa.LIVRE and grupo.numero_pessoas <= self.capacidade:
             self._status = StatusMesa.OCUPADA
             self._grupo_cliente = grupo
@@ -72,7 +65,6 @@ class Mesa:
         return False
 
     def liberar(self):
-        """Libera a mesa, mudando seu estado para SUJA."""
         if self.status == StatusMesa.OCUPADA:
             if self._grupo_cliente:
                 self._grupo_cliente.sair()
@@ -81,7 +73,6 @@ class Mesa:
 
 
     def limpar(self):
-        """Limpa a mesa, mudando seu estado para LIVRE."""
         if self.status == StatusMesa.SUJA:
             self._status = StatusMesa.LIVRE
             self.conta = None 

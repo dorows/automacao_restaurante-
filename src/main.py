@@ -2,10 +2,7 @@ from controllers.restaurante_controller import RestauranteController
 from views.console_view import ConsoleView
 
 def main():
-        """
-        Função principal que inicializa o sistema e executa o loop da aplicação.
-        """
-        # 1. Instancia as camadas principais da arquitetura MVC
+        #Instancia as camadas principais da arquitetura MVC
         controller = RestauranteController()
         view = ConsoleView()
 
@@ -16,7 +13,7 @@ def main():
         # Exibe o cardápio uma vez no início para o usuário saber as opções
         view.exibir_cardapio(controller.cardapio)
 
-        # 2. Loop principal da aplicação
+        #Loop principal da aplicação
         while True:
             # a. A View exibe o estado atual do restaurante (busca dados do controller)
             view.exibir_estado_do_restaurante(
@@ -62,13 +59,12 @@ def main():
                     view.exibir_mensagem(f"Comando '{acao}' desconhecido. Por favor, tente novamente.")
 
             except (ValueError, IndexError) as e:
-                # Captura erros de conversão (ex: digitar texto em vez de número) ou falta de argumentos
+                # Captura erros de conversão 
                 view.exibir_mensagem(f"Erro no comando: {e}. Verifique os argumentos e tente novamente.")
             except Exception as e:
                 # Captura qualquer outro erro inesperado
                 view.exibir_mensagem(f"Ocorreu um erro inesperado: {e}")
 
 
-    # Ponto de entrada padrão para um script Python
 if __name__ == "__main__":
     main()

@@ -50,28 +50,24 @@ class Pedido:
         return sum(item.calcular_subtotal() for item in self._itens)
 
     def confirmar(self) -> bool:
-        """Muda o status de ABERTO para CONFIRMADO."""
         if self.status == StatusPedido.ABERTO and self.itens:
             self._status = StatusPedido.CONFIRMADO
             return True
         return False
 
     def iniciar_preparo(self) -> bool:
-        """Muda o status de CONFIRMADO para EM_PREPARO."""
         if self.status == StatusPedido.CONFIRMADO:
             self._status = StatusPedido.EM_PREPARO
             return True
         return False
 
     def finalizar_preparo(self) -> bool:
-        """Muda o status de EM_PREPARO para PRONTO."""
         if self.status == StatusPedido.EM_PREPARO:
             self._status = StatusPedido.PRONTO
             return True
         return False
 
     def entregar_pedido(self) -> bool:
-        """Muda o status de PRONTO para ENTREGUE."""
         if self.status == StatusPedido.PRONTO:
             self._status = StatusPedido.ENTREGUE
             return True
