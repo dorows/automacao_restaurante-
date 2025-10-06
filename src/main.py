@@ -1,137 +1,67 @@
-from mesa import Mesa
-from grupo_cliente import GrupoCliente
-from garcom import Garcom
-from cozinheiro import Cozinheiro
-from fila_de_espera import FilaDeEspera
+from controllers.restaurante_controller import RestauranteController
+from views.console_view import ConsoleView
 
+def main():
+    controller = RestauranteController()
+    view = ConsoleView()
+
+    view.exibir_mensagem("="*60)
+    view.exibir_mensagem("BEM-VINDO AO SISTEMA DE GESTÃO DO RESTAURANTE")
+    view.exibir_mensagem("="*60)
+
+    while True:
+        view.exibir_estado_do_restaurante(
+            mesas=controller.mesas,
+            fila=controller.fila_de_espera
+        )
+        
+        acao, args = view.obter_comando()
+        
+        try:
+            if acao == "chegada":
+                if not args: raise ValueError("Número de pessoas não fornecido.")
+                resultado = controller.receber_clientes(int(args[0]))
+                view.exibir_mensagem(resultado)
+            
+            elif acao == "pedir":
+                if len(args) < 3: raise ValueError("Argumentos insuficientes.")
+                num_mesa, id_prato, qtd = map(int, args)
+                resultado = controller.realizar_pedido(num_mesa, id_prato, qtd)
+                view.exibir_mensagem(resultado)
+
+            elif acao == "confirmar":
+                if not args: raise ValueError("ID do pedido não fornecido.")
+                resultado = controller.confirmar_e_enviar_pedido_para_cozinha(int(args[0]))
+                view.exibir_mensagem(resultado)
+
+            elif acao == "pronto":
+                if not args: raise ValueError("ID do pedido não fornecido.")
+                resultado = controller.finalizar_preparo_pedido(int(args[0]))
+                view.exibir_mensagem(resultado)
+
+            elif acao == "finalizar":
+                if not args: raise ValueError("Número da mesa não fornecido.")
+                conta_fechada = controller.finalizar_atendimento(int(args[0]))
+                if conta_fechada:
+                    view.exibir_extrato(conta_fechada)
+            
+            elif acao == "equipe":
+                view.exibir_funcionarios(controller.funcionarios)
+
+            elif acao == "cardapio":
+                view.exibir_cardapio(controller.cardapio)
+
+            elif acao == "sair":
+                view.exibir_mensagem("Obrigado por usar o sistema. Até logo!")
+                break
+                
+            else:
+                view.exibir_mensagem(f"Comando '{acao}' desconhecido. Por favor, tente novamente.")
+
+        except (ValueError, IndexError) as e:
+            view.exibir_mensagem(f"Erro no comando: {e}. Verifique os argumentos e tente novamente.")
+        except Exception as e:
+            view.exibir_mensagem(f"Ocorreu um erro inesperado: {e}")
 
 if __name__ == "__main__":
-    
-    print('TESTE DE MESAS')
-    mesa_teste = Mesa(10, 4)
-    grupo1 = GrupoCliente(441,3)
-    grupo_grande = GrupoCliente(442,5)
-    
-    print(mesa_teste)
-
-    print("\nTentando ocupar a mesa com grupo pequeno...")
-    if mesa_teste.ocupar(grupo1):
-        print("deu certo como esperado.")
-    else:
-        print("falhou.")
-    print(mesa_teste)
-
-    # Liberando a mesa
-    print("\nliberando a mesa")
-    mesa_teste.liberar()
-    print(mesa_teste)
-
-    # Limpando a mesa
-    print("\nlimpando a mesa...")
-    mesa_teste.limpar()
-    print(mesa_teste)
-    
-    print("\ntentando ocupar a mesa com grupo grande...")
-    if mesa_teste.ocupar(grupo_grande):
-        print("Deu certo")
-    else:
-        print("falhou, como esperado")
-    print(mesa_teste) 
-    
-
-    print('\nTESTES DOS FUNCIONARIOS\n')
-
-    garcom_ana = Garcom(101, "Ana", 1600.0)
-    garcom_ana.adicionar_gorjeta(75.50)
-    
-    cozinheiro_joao = Cozinheiro(201, "João", 2200.0)
-    
-    print("Exibindo dados dos funcionários:")
-    print(garcom_ana.exibir_dados())
-    print(cozinheiro_joao.exibir_dados())
-
-    print("\nCalculando pagamentos:")
-    print(f"Pagamento da Ana: R${garcom_ana.calcular_pagamento():.2f}")
-    print(f"Pagamento do João: R${cozinheiro_joao.calcular_pagamento():.2f}")
-
-    print('\nTESTES DA FILA DE ESPERA\n')
-
-
-
-    fila = FilaDeEspera()
-    print(fila)
-    print(f"Tamanho inicial da fila: {len(fila)}")
-
-    grupo_A = GrupoCliente(id_grupo=1, numero_pessoas=4)
-    grupo_B = GrupoCliente(id_grupo=2, numero_pessoas=6)
-    grupo_C = GrupoCliente(id_grupo=3, numero_pessoas=2)
-
-    fila.adicionar_grupo(grupo_A)
-    fila.adicionar_grupo(grupo_B)
-    fila.adicionar_grupo(grupo_C)
-
-    print("\nEstado atual da fila:")
-    print(fila)
-    print(f"Tamanho atual da fila: {len(fila)}")
-    print("-" * 30)
-
-    print("\n--- TESTE Chamando o primeiro da fila para uma mesa grande (6 lugares) ---")
-    mesa_grande_capacidade = 6
-    grupo_chamado = fila.chamar_proximo_grupo(mesa_grande_capacidade)
-    
-    if grupo_chamado:
-        print(f"Grupo chamado: {grupo_chamado}")
-        print("Resultado esperado: Grupo A (4 pessoas), pois foi o primeiro a chegar e cabe na mesa.")
-    else:
-        print("Nenhum grupo foi chamado.")
-        
-    print("\nEstado da fila após a chamada:")
-    print(fila)
-    print(f"Tamanho da fila: {len(fila)}")
-    print("-" * 30)
-
-    print("\n--- TESTE Chamando para uma mesa PEQUENA  ---")
-    print("O sistema deve pular o Grupo 2 e chamar o Grupo 3 (2 pessoas).")
-
-    mesa_pequena_capacidade = 2
-    grupo_chamado = fila.chamar_proximo_grupo(mesa_pequena_capacidade)
-
-    if grupo_chamado:
-        print(f"Grupo chamado: {grupo_chamado}")
-        print("Resultado esperado: Grupo 3 (2 pessoas).")
-    else:
-        print("Nenhum grupo foi chamado.")
-
-    print("\nEstado da fila após a chamada:")
-    print(fila)
-    print(f"Tamanho da fila: {len(fila)}")
-    print("-" * 30)
-
-    print("\n--- TESTE Tentando chamar para uma mesa minúscula ---")
-    print("O único grupo na fila é o Grupo 2 (6 pessoas), que não cabe.")
-
-    mesa_minuscula_capacidade = 1
-    grupo_chamado = fila.chamar_proximo_grupo(mesa_minuscula_capacidade)
-
-    if grupo_chamado:
-        print(f"Grupo chamado: {grupo_chamado}")
-    else:
-        print("Nenhum grupo foi chamado, como esperado.")
-
-    print("\nEstado da fila após a tentativa de chamada:")
-    print(fila) 
-    print(f"Tamanho da fila: {len(fila)}")
-    print("-" * 30)
-
-    print("\n--- TESTE Esvaziando o último item da fila ---")
-    mesa_enorme_capacidade = 10
-    grupo_chamado = fila.chamar_proximo_grupo(mesa_enorme_capacidade)
-    
-    print(f"Grupo chamado: {grupo_chamado}")
-    print("\nEstado final da fila:")
-    print(fila)
-    print(f"Tamanho final da fila: {len(fila)}")
-    print("-" * 30)
-
-    
-
+    main()

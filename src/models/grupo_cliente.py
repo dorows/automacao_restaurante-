@@ -1,5 +1,5 @@
-from status_enums import StatusGrupoCliente
-from pedido import Pedido
+from models.status_enums import StatusGrupoCliente
+from models.pedido import Pedido
 class GrupoCliente:
     def __init__(self, id_grupo: int, numero_pessoas: int):
         self._id_grupo: int = id_grupo

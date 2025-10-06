@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from mesa import Mesa
-from funcionario import Funcionario
+    from models.mesa import Mesa
+from models.funcionario import Funcionario
 
 class Garcom(Funcionario):
     def __init__(self, id_funcionario: int, nome: str, salario_base: float):
