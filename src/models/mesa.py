@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
-
-# Importações como estavam antes
 from .status_enums import StatusMesa
 from .grupo_cliente import GrupoCliente
 from .conta import Conta

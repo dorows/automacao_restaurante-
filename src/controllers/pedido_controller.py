@@ -8,11 +8,6 @@ class PedidoController:
     def __init__(self):
         self._pedidos = []
     def encontrar_pedido_por_id(self, id_pedido: int) -> Optional[Pedido]:
-        """
-        Busca em sua lista interna por um pedido com o ID correspondente.
-        Retorna o objeto Pedido se encontrar, ou None caso contrário.
-        """
-        # A função next() com um gerador é uma forma eficiente de buscar o primeiro item em uma lista
         return next((p for p in self._pedidos if p.id_pedido == id_pedido), None)
     def criar_novo_pedido(self, mesa: Mesa, garcom: Garcom, grupo_cliente: GrupoCliente) -> Pedido:
         novo_pedido = Pedido(mesa=mesa, garcom=garcom, grupo_cliente=grupo_cliente)
