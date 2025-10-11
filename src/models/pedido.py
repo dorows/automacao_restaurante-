@@ -72,6 +72,7 @@ class Pedido:
             self._status = StatusPedido.ENTREGUE
             return True
         return False
+
     def __str__(self) -> str:
         return (f"Pedido ID: {self.id_pedido} (Mesa: {self.mesa.id_mesa}) | "
                 f"Status: {self.status.value} | "

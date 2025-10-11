@@ -32,6 +32,7 @@ class ConsoleView:
             "ajuda": self.handle_ajuda,
             "sair": self.handle_sair,
             "mesaadd": self.handle_mesa_add,
+            "entregar": self.handle_entregar,
         }
         self._rodando = True
 
@@ -55,15 +56,18 @@ class ConsoleView:
     def obter_comando(self) -> Tuple[str, List[str]]:
         prompt = (
             "\nDigite um comando:\n"
+            "  - mesaadd [id_mesa] [capacidade]\n"
             "  - chegada [n_pessoas]\n"
             "  - pedir [n_mesa] [id_prato] [qtd]\n"
             "  - confirmar [id_pedido]\n"
             "  - pronto [id_pedido]\n"
+            "  - entregar [id_pedido]\n"
             "  - finalizar [n_mesa]\n"
             "  - limpar [n_mesa]\n"
             "  - equipe | cardapio | mesas | fila | ajuda | sair\n"
             "> "
         )
+
         partes = input(prompt).strip().split()
         if not partes:
             return "ajuda", []
@@ -100,10 +104,30 @@ class ConsoleView:
             self.conta_view.exibir_extrato(conta)
 
     def handle_confirmar(self, args: List[str]):
-        self.exibir_mensagem("[TODO] confirmar [id_pedido] (expor no controller)")
+        if len(args) != 1 or not args[0].isdigit():
+            self.exibir_mensagem("[ERRO] Uso: confirmar [id_pedido]")
+            return
+
+        pedido_id = int(args[0])
+        r = self.restaurante.confirmar_pedido(pedido_id)
+        self._render_result(r)
 
     def handle_pronto(self, args: List[str]):
-        self.exibir_mensagem("[TODO] pronto [id_pedido] (expor no controller)")
+        if len(args) != 1 or not args[0].isdigit():
+            self.exibir_mensagem("[ERRO] Uso: pronto [id_pedido]")
+            return
+
+        pedido_id = int(args[0])
+        r = self.restaurante.pedido_pronto(pedido_id)
+        self._render_result(r)
+
+    def handle_entregar(self, args):
+        if len(args) != 1 or not args[0].isdigit():
+            self.exibir_mensagem("[ERRO] Uso: entregar [id_pedido]")
+            return
+        r = self.restaurante.entregar_pedido(int(args[0]))
+        self._render_result(r)
+
 
     def handle_finalizar(self, args: List[str]):
         if len(args) != 1:
@@ -146,7 +170,19 @@ class ConsoleView:
         self.fila_view.exibir_fila(self.restaurante.fila_de_espera)
 
     def handle_ajuda(self, args: List[str]):
-        self.exibir_mensagem("Comandos: chegada, pedir, confirmar, pronto, finalizar, limpar, equipe, cardapio, mesas, fila, sair")
+        ajuda = [
+            "Comandos disponíveis:",
+            "  mesaadd [id_mesa] [capacidade]  - cadastra nova mesa",
+            "  chegada [n_pessoas]             - recebe grupo e tenta sentar",
+            "  pedir [n_mesa] [id_prato] [qtd] - adiciona item ao pedido aberto",
+            "  confirmar [id_pedido]           - confirma pedido e envia à cozinha",
+            "  pronto [id_pedido]              - marca pedido como PRONTO",
+            "  entregar [id_pedido]            - marca pedido como ENTREGUE",
+            "  finalizar [n_mesa]              - fecha a conta e marca mesa como SUJA",
+            "  limpar [n_mesa]                 - limpa mesa SUJA e libera",
+            "  equipe | cardapio | mesas | fila | ajuda | sair",
+        ]
+        self.exibir_mensagem("\n".join(ajuda))
 
     def handle_sair(self, args: List[str]):
         self._rodando = False
@@ -173,7 +209,9 @@ class ConsoleView:
             "pedido_pronto":     lambda d: f"Pedido #{d['pedido'].id_pedido} pronto para servir.",
             "pedido_nao_confirmado": lambda d: "[ERRO] Não foi possível confirmar (status inválido?).",
             "pedido_nao_pronto":     lambda d: "[ERRO] Não foi possível marcar como pronto (status inválido?).",
-
+            "pedido_entregue":     lambda d: f"Pedido #{d['pedido'].id_pedido} ENTREGUE na mesa.",
+            "pedido_nao_entregue": lambda d: "[ERRO] Não foi possível marcar como entregue (status precisa ser 'Pronto').",
+            "mesa_cadastrada":     lambda d: f"Mesa {d['mesa'].id_mesa} cadastrada ({d['mesa'].capacidade} lugares).",
 
             # erros
             "grupo_invalido":      lambda d: "[ERRO] Número de pessoas inválido.",
@@ -181,6 +219,9 @@ class ConsoleView:
             "conta_nao_encontrada":lambda d: "[ERRO] Nenhuma conta ativa para a mesa informada.",
             "prato_nao_encontrado":lambda d: "[ERRO] ID de prato inexistente.",
             "item_nao_adicionado": lambda d: "[ERRO] Não foi possível adicionar o item (conta fechada? pedido não aberto? quantidade inválida?).",
+            "mesa_ja_existe":      lambda d: "[ERRO] Já existe mesa com esse número.",
+            "capacidade_invalida": lambda d: "[ERRO] Capacidade precisa ser > 0.",
+            "pedido_nao_encontrado": lambda d: "[ERRO] Pedido não encontrado.",
         }
 
         if r.status == "ok":

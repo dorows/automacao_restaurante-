@@ -14,6 +14,6 @@ class StatusPedido(Enum):
     ABERTO = "Aberto (em anotação)"
     CONFIRMADO = "Confirmado (enviado à cozinha)"
     EM_PREPARO = "Em Preparo"
-    PRONTO = "Pronto para Servir"
-    ENTREGUE = "Entregue ao Cliente"
+    PRONTO = "Pronto"
+    ENTREGUE = "Entregue"
     CANCELADO = "Cancelado"

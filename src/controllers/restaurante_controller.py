@@ -44,16 +44,8 @@ class RestauranteController:
     def funcionarios(self) -> List[Funcionario]:
         return self._funcionario_controller.listar_funcionarios()
 
-    # ---------- Casos de uso principais (invocados pela View) ----------
+    # Casos de uso principais (invocados pela View)
     def receber_clientes(self, numero_pessoas: int) -> Result:
-        """
-        Tenta sentar o grupo; se não houver mesa, coloca na fila.
-        Sucesso:
-          - message_key="grupo_alocado" com data={"grupo","mesa","garcom","conta"}
-          - ou message_key="grupo_para_fila" com data={"grupo"}
-        Erros:
-          - error="grupo_invalido"
-        """
         try:
             novo_grupo = self._cliente_controller.criar_grupo(numero_pessoas)
         except ValueError:
@@ -63,8 +55,6 @@ class RestauranteController:
         if mesa_livre:
             garcom = self._funcionario_controller.encontrar_garcom_disponivel()
             if garcom:
-                # Se o garçom já estiver no limite, designar_garcom deve ser
-                # idempotente/silencioso — a View pode informar depois se quiser.
                 self._mesa_controller.designar_garcom(mesa_livre, garcom)
 
             # Ocupa mesa e abre conta
@@ -82,13 +72,6 @@ class RestauranteController:
         return Result(status="ok", data={"grupo": novo_grupo}, message_key="grupo_para_fila")
 
     def realizar_pedido(self, numero_mesa: int, id_prato: int, quantidade: int) -> Result:
-        """
-        Adiciona um item ao pedido aberto da mesa; cria pedido se não existir.
-        Sucesso:
-          - message_key="item_adicionado" com data={"conta","prato","quantidade"}
-        Erros:
-          - error="mesa_invalida" | "conta_nao_encontrada" | "prato_nao_encontrado" | "item_nao_adicionado"
-        """
         mesa = self._mesa_controller.encontrar_mesa_por_numero(numero_mesa)
         if not mesa or mesa.status != StatusMesa.OCUPADA:
             return Result(status="invalid", error="mesa_invalida")
@@ -109,13 +92,6 @@ class RestauranteController:
                       message_key="item_adicionado")
 
     def finalizar_atendimento(self, numero_mesa: int) -> Result:
-        """
-        Fecha a conta da mesa e libera a mesa (de acordo com a política do MesaController).
-        Sucesso:
-          - message_key="conta_fechada" com data={"conta","mesa"}
-        Erros:
-          - error="mesa_invalida" | "conta_nao_encontrada"
-        """
         mesa = self._mesa_controller.encontrar_mesa_por_numero(numero_mesa)
         if not mesa or mesa.status != StatusMesa.OCUPADA:
             return Result(status="invalid", error="mesa_invalida")
@@ -126,20 +102,11 @@ class RestauranteController:
 
         self._conta_controller.fechar_conta(conta)
 
-        # Observação: seu MesaController.liberar_mesa() atualmente chama limpar() em seguida.
-        # Se quiser manter a mesa SUJA até limpar manualmente, separe as operações no MesaController.
         self._mesa_controller.liberar_mesa(numero_mesa)
 
         return Result(status="ok", data={"conta": conta, "mesa": mesa}, message_key="conta_fechada")
 
     def demitir_funcionario(self, id_funcionario: int) -> Result:
-        """
-        Encaminha a demissão para o FuncionarioController (que você já implementou).
-        Sucesso:
-          - message_key="func_demitido" com data={"id","nome","tipo"}
-        Erros:
-          - error="func_nao_encontrado" | "cozinheiro_com_pedidos_em_preparo" | outros
-        """
         ok, func, err = self._funcionario_controller.demitir_funcionario(id_funcionario)
         if not ok:
             if err == "func_nao_encontrado":
@@ -179,3 +146,28 @@ class RestauranteController:
             return Result(status="conflict", error="mesa_ja_existe")
         mesa = self._mesa_controller.cadastrar_mesa(id_mesa, capacidade)
         return Result(status="ok", data={"mesa": mesa}, message_key="mesa_cadastrada")
+
+    def confirmar_pedido(self, id_pedido: int) -> Result:
+        p = self._pedido_controller.encontrar_pedido_por_id(id_pedido)
+        if not p:
+            return Result(status="not_found", error="pedido_nao_encontrado")
+        if not self._pedido_controller.confirmar_pedido(id_pedido):
+            return Result(status="invalid", error="pedido_nao_confirmado")
+        self._pedido_controller.iniciar_preparo(id_pedido)
+        return Result(status="ok", data={"pedido": p}, message_key="pedido_confirmado")
+    
+    def pedido_pronto(self, id_pedido: int) -> Result:
+        p = self._pedido_controller.encontrar_pedido_por_id(id_pedido)
+        if not p:
+            return Result(status="not_found", error="pedido_nao_encontrado")
+        if not self._pedido_controller.marcar_pronto(id_pedido):
+            return Result(status="invalid", error="pedido_nao_pronto")
+        return Result(status="ok", data={"pedido": p}, message_key="pedido_pronto")
+
+    def entregar_pedido(self, id_pedido: int) -> Result:
+        p = self._pedido_controller.encontrar_pedido_por_id(id_pedido)
+        if not p:
+            return Result(status="not_found", error="pedido_nao_encontrado")
+        if not self._pedido_controller.marcar_entregue(id_pedido):
+            return Result(status="invalid", error="pedido_nao_entregue")
+        return Result(status="ok", data={"pedido": p}, message_key="pedido_entregue")

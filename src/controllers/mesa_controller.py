@@ -47,3 +47,8 @@ class MesaController:
         if mesa and garcom:
             mesa.garcom_responsavel = garcom
             garcom.adicionar_mesa(mesa)
+
+    def cadastrar_mesa(self, id_mesa: int, capacidade: int):
+        nova = Mesa(id_mesa=id_mesa, capacidade=capacidade)
+        self._mesas.append(nova)
+        return nova

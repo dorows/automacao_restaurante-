@@ -25,5 +25,6 @@ class FilaDeEspera:
         return self._fila.copy()
 
     def __str__(self) -> str:
-        # para debug
-        return f"FilaDeEspera(len={len(self)})"
+        if not self._fila:
+            return "Fila vazia"
+        return " -> ".join(f"G{g.id_grupo}({g.numero_pessoas})" for g in self._fila)

@@ -34,3 +34,15 @@ class PedidoController:
         novo_item = ItemPedido(prato=prato, quantidade=quantidade)
         pedido_alvo.adicionar_item(novo_item)
         return True
+
+    def confirmar_pedido(self, id_pedido: int) -> bool:
+        p = self.encontrar_pedido_por_id(id_pedido)
+        return p.confirmar() if p else False
+
+    def iniciar_preparo(self, id_pedido: int) -> bool:
+        p = self.encontrar_pedido_por_id(id_pedido)
+        return p.iniciar_preparo() if p else False
+
+    def marcar_pronto(self, id_pedido: int) -> bool:
+        p = self.encontrar_pedido_por_id(id_pedido)
+        return p.finalizar_preparo() if p else False
