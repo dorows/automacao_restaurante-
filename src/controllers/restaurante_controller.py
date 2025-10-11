@@ -121,7 +121,6 @@ class RestauranteController:
                       data={"id": func.id_funcionario, "nome": func.nome, "tipo": tipo},
                       message_key="func_demitido")
 
-    # ---------- (Opcional) utilitários que a UI pode querer chamar ----------
     def encontrar_mesa(self, numero_mesa: int) -> Optional[Mesa]:
         return self._mesa_controller.encontrar_mesa_por_numero(numero_mesa)
 
