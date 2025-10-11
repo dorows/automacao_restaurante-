@@ -15,20 +15,16 @@ class ContaController:
         return id_gerado
 
     def abrir_nova_conta(self, grupo_cliente: GrupoCliente, mesa: Mesa) -> Conta:
-
-        print('debugando contacontroller.py')
         id_conta = self._gerar_id_conta()
         nova_conta = Conta(id_conta=id_conta, grupo_cliente=grupo_cliente, mesa=mesa)
         self._contas.append(nova_conta)
-        mesa.conta = nova_conta 
-        
-        print(f"[ContaController] Conta {id_conta} aberta para o {grupo_cliente} na Mesa {mesa.id_mesa}.")
+        mesa.conta = nova_conta
+
         return nova_conta
 
     def fechar_conta(self, conta: Conta) -> bool:
         if conta and conta.esta_aberta:
             conta.fechar()
-            print(f"[ContaController] Conta {conta.id_conta} foi fechada.")
             return True
         return False
 

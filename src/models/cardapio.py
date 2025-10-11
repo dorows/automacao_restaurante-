@@ -12,18 +12,13 @@ class Cardapio:
 
         return self._pratos.copy()
 
-    def adicionar_prato(self, prato: Prato):
-
+    def adicionar_prato(self, prato: Prato) -> bool:
         if not isinstance(prato, Prato):
-            raise TypeError("Apenas objetos da classe Prato podem ser adicionados ao cardápio.")
-
-        for p in self._pratos:
-            if p.id_prato == prato.id_prato:
-                print(f"Aviso: Prato com ID {prato.id_prato} ('{p.nome}') já existe e não foi adicionado.")
-                return
-        
+            raise TypeError("Apenas objetos Prato podem ser adicionados ao cardápio.")
+        if any(p.id_prato == prato.id_prato for p in self._pratos):
+            return False
         self._pratos.append(prato)
-        print(f"Prato '{prato.nome}' adicionado ao cardápio.")
+        return True
 
     def buscar_prato_por_id(self, id_prato: int) -> Optional[Prato]:
 

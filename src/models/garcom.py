@@ -19,7 +19,6 @@ class Garcom(Funcionario):
             self.__mesas_atendidas.append(mesa)
             return True
         else:
-            print(f"Aviso: O garçom {self.nome} já atingiu o limite de 4 mesas.")
             return False
 
     def remover_mesa(self, mesa: Mesa):

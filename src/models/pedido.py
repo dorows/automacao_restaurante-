@@ -40,11 +40,11 @@ class Pedido:
     def itens(self) -> List[ItemPedido]:
         return self._itens.copy()
 
-    def adicionar_item(self, item: ItemPedido):
+    def adicionar_item(self, item: ItemPedido) -> bool:
         if self.status == StatusPedido.ABERTO:
             self._itens.append(item)
-        else:
-            print(f"Aviso: Pedido {self.id_pedido} não está aberto para novos itens.")
+            return True
+        return False
 
     def calcular_subtotal_pedido(self) -> float:
         return sum(item.calcular_subtotal() for item in self._itens)

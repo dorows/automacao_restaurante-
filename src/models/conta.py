@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 
 class Conta:
     def __init__(self, id_conta: int, grupo_cliente: GrupoCliente, mesa: Mesa):
-        print('debugando conta.py nova versão')
         self._id_conta: int = id_conta
         self._grupo_cliente: GrupoCliente = grupo_cliente
         self._mesa: Mesa = mesa  

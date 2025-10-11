@@ -7,7 +7,9 @@ class FuncionarioView:
         if not funcionarios:
             print("Nenhum funcionário cadastrado.")
             return
-            
         for func in funcionarios:
             print(func.exibir_dados())
             print("-" * 25)
+
+    def exibir_mensagem_sucesso(self, mensagem: str): print(f"[OK] {mensagem}")
+    def exibir_mensagem_erro(self, mensagem: str): print(f"[ERRO] {mensagem}")

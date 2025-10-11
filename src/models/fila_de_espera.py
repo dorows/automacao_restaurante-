@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Iterator
 from .grupo_cliente import GrupoCliente
 
 class FilaDeEspera:
@@ -6,10 +6,8 @@ class FilaDeEspera:
         self._fila: List[GrupoCliente] = []
 
     def adicionar_grupo(self, grupo: GrupoCliente):
-        if grupo in self._fila:
-            return
-        
-        self._fila.append(grupo)
+        if grupo not in self._fila:
+            self._fila.append(grupo)
 
     def chamar_proximo_grupo(self, capacidade_disponivel: int) -> Optional[GrupoCliente]:
         for i, grupo in enumerate(self._fila):
@@ -20,12 +18,12 @@ class FilaDeEspera:
     def __len__(self) -> int:
         return len(self._fila)
 
+    def __iter__(self) -> Iterator[GrupoCliente]:
+        return iter(self._fila)
+
+    def to_list(self) -> List[GrupoCliente]:
+        return self._fila.copy()
+
     def __str__(self) -> str:
-        if not self._fila:
-            return "A fila de espera está vazia."
-        
-        titulo = "--- FILA DE ESPERA ---\n"
-        itens_fila = "\n".join(
-            f"{i+1}. {str(grupo)}" for i, grupo in enumerate(self._fila)
-        )
-        return titulo + itens_fila
+        # para debug
+        return f"FilaDeEspera(len={len(self)})"

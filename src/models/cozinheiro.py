@@ -13,24 +13,18 @@ class Cozinheiro(Funcionario):
     def pedidos_em_preparo(self) -> List[Pedido]:
         return self._pedidos_em_preparo.copy()
 
-    def iniciar_preparo_pedido(self, pedido: Pedido) -> bool:
-        if pedido.iniciar_preparo(): # <-- Pede para o pedido iniciar o preparo
+    def iniciar_preparo_pedido(self, pedido) -> bool:
+        if pedido.iniciar_preparo():
             self._pedidos_em_preparo.append(pedido)
-            print(f"Cozinheiro {self.nome} iniciou o preparo do Pedido {pedido.id_pedido}.")
             return True
-        else:
-            print(f"Aviso: Cozinheiro não pode iniciar o Pedido {pedido.id_pedido} (status inválido).")
-            return False
-
-    def finalizar_preparo_pedido(self, pedido: Pedido) -> bool:
-        if pedido in self._pedidos_em_preparo:
-            if pedido.finalizar_preparo(): # <-- Pede para o pedido finalizar o preparo
-                self._pedidos_em_preparo.remove(pedido)
-                print(f"Cozinheiro {self.nome} finalizou o preparo do Pedido {pedido.id_pedido}.")
-                return True
-        
-        print(f"Aviso: Cozinheiro não pode finalizar o Pedido {pedido.id_pedido}.")
         return False
+
+    def finalizar_preparo_pedido(self, pedido) -> bool:
+        if pedido in self._pedidos_em_preparo and pedido.finalizar_preparo():
+            self._pedidos_em_preparo.remove(pedido)
+            return True
+        return False
+
     def calcular_pagamento(self) -> float: 
         return self.salario_base
     

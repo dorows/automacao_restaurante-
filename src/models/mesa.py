@@ -70,13 +70,14 @@ class Mesa:
             self._grupo_cliente = None
 
 
-    def limpar(self):
+    def limpar(self) -> bool:
         if self.status == StatusMesa.SUJA:
             self._status = StatusMesa.LIVRE
-            self.conta = None 
+            self.conta = None
             self.garcom_responsavel = None
-            print(f"Mesa {self.id_mesa} foi limpa e está livre.")
-
+            return True
+        return False
+        
     def __str__(self) -> str:
         garcom = f" (Garçom: {self.garcom_responsavel.nome})" if self.garcom_responsavel else ""
         ocupante = f" (Ocupante: {self._grupo_cliente})" if self._grupo_cliente else ""
