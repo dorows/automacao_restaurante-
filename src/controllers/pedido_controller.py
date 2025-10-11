@@ -46,3 +46,7 @@ class PedidoController:
     def marcar_pronto(self, id_pedido: int) -> bool:
         p = self.encontrar_pedido_por_id(id_pedido)
         return p.finalizar_preparo() if p else False
+
+    def marcar_entregue(self, id_pedido: int) -> bool:
+        p = self.encontrar_pedido_por_id(id_pedido)
+        return p.entregar_pedido() if p else False

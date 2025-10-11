@@ -22,12 +22,16 @@ class MesaController:
 
     def encontrar_mesa_por_numero(self, numero_mesa: int) -> Optional[Mesa]:
         return next((m for m in self._mesas if m.id_mesa == numero_mesa), None)
-
+        
     def encontrar_mesa_livre(self, qtd_pessoas: int) -> Optional[Mesa]:
-        for mesa in self._mesas:
-            if mesa.status == StatusMesa.LIVRE and mesa.capacidade >= qtd_pessoas:
-                return mesa
-        return None
+        melhor: Optional[Mesa] = None
+        for m in self._mesas:
+            if m.status == StatusMesa.LIVRE and m.capacidade >= qtd_pessoas:
+                if (melhor is None or
+                    m.capacidade < melhor.capacidade or
+                    (m.capacidade == melhor.capacidade and m.id_mesa < melhor.id_mesa)):
+                    melhor = m
+        return melhor
 
     def ocupar_mesa(self, numero_mesa: int, grupo: GrupoCliente) -> bool:
         mesa = self.encontrar_mesa_por_numero(numero_mesa)
