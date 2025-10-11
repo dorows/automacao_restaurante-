@@ -38,7 +38,14 @@ class ConsoleView:
 
     def loop(self):
         while self._rodando:
-            self.render_dashboard()
+            autos = self.restaurante.tentar_alocar_fila(greedy=False)
+            for r in autos:
+                self._render_result(r)             
+                conta = r.data.get("conta")
+                if conta:
+                    self.conta_view.exibir_extrato(conta)
+
+            self.render_dashboard()  # 
             acao, args = self.obter_comando()
             handler = self.handlers.get(acao)
             if handler:

@@ -171,3 +171,41 @@ class RestauranteController:
         if not self._pedido_controller.marcar_entregue(id_pedido):
             return Result(status="invalid", error="pedido_nao_entregue")
         return Result(status="ok", data={"pedido": p}, message_key="pedido_entregue")
+
+    def tentar_alocar_fila(self, greedy: bool = False) -> list[Result]:
+
+        resultados: list[Result] = []
+        fila_snapshot = self._fila_controller.listar()  # cópia
+
+        for grupo in fila_snapshot:
+            # tenta achar a melhor mesa livre p/ este grupo
+            mesa = self._mesa_controller.encontrar_mesa_livre(grupo.numero_pessoas)  # 
+            if not mesa:
+                if not greedy:
+                    break  # FIFO estrito: primeiro que não coube => para tudo
+                else:
+                    continue  # greedy: tenta próximos
+
+            # designa garçom se houver (não é bloqueante)
+            garcom = self._funcionario_controller.encontrar_garcom_disponivel()  # 
+            if garcom:
+                self._mesa_controller.designar_garcom(mesa, garcom)  # 
+
+            # ocupa mesa; se falhar por corrida, tenta próximo conforme política
+            if not self._mesa_controller.ocupar_mesa(mesa.id_mesa, grupo):  # 
+                if not greedy:
+                    break
+                else:
+                    continue
+
+            # remove da fila e abre conta (ASS: precisa do arg 'mesa'!)
+            self._fila_controller.remover(grupo)
+            conta = self._conta_controller.abrir_nova_conta(grupo, mesa)  # 
+
+            resultados.append(Result(
+                status="ok",
+                data={"grupo": grupo, "mesa": mesa, "garcom": garcom, "conta": conta},
+                message_key="grupo_alocado"
+            ))
+
+        return resultados

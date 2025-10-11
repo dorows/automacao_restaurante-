@@ -17,3 +17,13 @@ class FilaController:
 
     def esta_vazia(self) -> bool:
         return len(self._fila_de_espera) == 0
+    
+    def listar(self):
+        return self._fila_de_espera.to_list()  # cópia da lista  
+
+    def remover(self, grupo: GrupoCliente) -> bool:
+        fila = self._fila_de_espera._fila  # ou expor método na model, se preferir
+        if grupo in fila:
+            fila.remove(grupo)
+            return True
+        return False
