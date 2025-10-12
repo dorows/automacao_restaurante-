@@ -56,7 +56,6 @@ def build_app() -> AppController:
         cardapio_controller=cardapio_ctrl,
     )
 
-    # ---- App (loop principal) ----
     app = AppController(
         console=console_v,
         mesa_v=mesa_v,
@@ -72,15 +71,11 @@ def build_app() -> AppController:
 
 
 def main() -> None:
-    print("\n=== Automação de Restaurante (CLI) ===")
-    print("Digite 'ajuda' para ver os comandos.\n")
-
     app = build_app()
     try:
         app.run()
     except KeyboardInterrupt:
-        print("\nSaindo... até mais! 👋")
-
+        pass
 
 if __name__ == "__main__":
     main()

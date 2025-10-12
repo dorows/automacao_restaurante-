@@ -10,7 +10,10 @@ from controllers.restaurante_controller import RestauranteController
 from controllers.pedido_controller import PedidoController
 
 class AppController:
-    "Controlador principal do aplicativo (CLI). Mantém o loop: autoaloca fila -> mostra painel -> lê comando -> despacha."
+    """
+    Controlador principal do aplicativo.
+    Mantém o loop: ajuda -> autoaloca -> painel -> comando -> despacha.
+    """
     def __init__(self,
                  console: ConsoleView,
                  mesa_v: MesaView,
@@ -33,6 +36,9 @@ class AppController:
 
     def run(self) -> None:
         while True:
+            # 0) imprime sempre os comandos no início do ciclo (silencioso fora do loop)
+            self.console.print_lines(self.console._help_lines())
+
             # 1) autoalocação no começo do loop
             self.restaurante.auto_alocar_e_printar(greedy=False)
 
@@ -73,26 +79,36 @@ class AppController:
                 mesa_id = int(args[0])
                 self.restaurante.limpar_mesa_e_printar(mesa_id)
 
-            elif acao == "equipe":
-                self.restaurante.listar_equipe_e_printar()
-
             elif acao == "cardapio":
                 self.restaurante.listar_cardapio_e_printar()
 
+            elif acao == "equipe":
+                self.restaurante.listar_equipe_e_printar()
+
+            elif acao == "contratar_garcom":
+                nome = args[0]
+                salario = float(args[1])
+                self.restaurante.contratar_garcom_e_printar(nome, salario)
+
+            elif acao == "contratar_cozinheiro":
+                nome = args[0]
+                salario = float(args[1])
+                self.restaurante.contratar_cozinheiro_e_printar(nome, salario)
+
+            elif acao == "demitir":
+                id_func = int(args[0])
+                self.restaurante.demitir_funcionario_e_printar(id_func)
+
+            elif acao == "adicionar_mesa":
+                id_mesa = int(args[0])
+                capacidade = int(args[1])
+                self.restaurante.adicionar_mesa_e_printar(id_mesa, capacidade)
+
             elif acao in ("ajuda", "help", "?"):
-                self.console.print_lines([
-                    "Comandos:",
-                    "  chegada <qtd>",
-                    "  pedir <mesa_id> <prato_id> <qtd>",
-                    "  confirmar <mesa_id>",
-                    "  pronto <mesa_id>",
-                    "  entregar <mesa_id>",
-                    "  finalizar <mesa_id>",
-                    "  limpar <mesa_id>",
-                    "  equipe",
-                    "  cardapio",
-                ])
+                self.console.print_lines(self._help_lines())
+
             else:
-                self.console.print_lines(["Comando inválido. Digite 'ajuda'."])
+                self.console.print_lines(["Comando inválido."])
+
         except (IndexError, ValueError):
-            self.console.print_lines(["Parâmetros inválidos. Digite 'ajuda'."])
+            self.console.print_lines(["Parâmetros inválidos."])

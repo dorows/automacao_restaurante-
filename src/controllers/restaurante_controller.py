@@ -23,7 +23,7 @@ from models.cozinheiro import Cozinheiro
 from models.conta import Conta
 
 class RestauranteController:
-    "Coordena fluxos gerais do restaurante e imprime via views passivas."
+    """Coordena fluxos gerais do restaurante e imprime via views passivas."""
     def __init__(self,
                  console_v: ConsoleView,
                  mesa_v: MesaView,
@@ -120,9 +120,12 @@ class RestauranteController:
                 else:
                     continue
 
+            # tenta designar garçom; se não houver disponível, segue sem
             garcom = self._func.encontrar_garcom_disponivel()
             if garcom:
-                self._mesa.designar_garcom(mesa, garcom)
+                ok = self._mesa.designar_garcom(mesa, garcom)
+                if not ok:
+                    garcom = None  # não deixa estado inconsistente
 
             if not self._mesa.ocupar_mesa(mesa.id_mesa, grupo):
                 if not greedy:
@@ -141,7 +144,7 @@ class RestauranteController:
         if msgs:
             self.console.print_lines(msgs)
 
-    # ----------------------------- casos de uso ----------------------------------
+    # ----------------------------- casos de uso mesa/conta ------------------------
     def receber_clientes_e_printar(self, qtd: int) -> None:
         if qtd <= 0:
             self.console.print_lines(["[ERRO] Quantidade inválida."])
@@ -155,11 +158,11 @@ class RestauranteController:
             return
 
         garcom = self._func.encontrar_garcom_disponivel()
-        if garcom:
-            self._mesa.designar_garcom(mesa, garcom)
+        if garcom and not self._mesa.designar_garcom(mesa, garcom):
+            garcom = None  # não travar por falta de vaga
 
         if not self._mesa.ocupar_mesa(mesa.id_mesa, grupo):
-            # fallback: se falhar por corrida, manda pra fila
+            # corrida: manda pra fila
             self._fila.adicionar_grupo(grupo)
             self.console.print_lines([f"[FILA] Grupo {grupo.id_grupo} ({qtd}) adicionado à fila."])
             return
@@ -198,6 +201,7 @@ class RestauranteController:
         else:
             self.console.print_lines([f"[INFO] Mesa {mesa_id} não está suja (status: {mesa.status.value})."])
 
+    # ----------------------------- equipe: listar/contratar/demitir --------------
     def listar_equipe_e_printar(self) -> None:
         lst = []
         for f in self._func.listar_funcionarios():
@@ -206,5 +210,65 @@ class RestauranteController:
             lst.append({"id": f.id_funcionario, "nome": f.nome, "papel": papel, "mesas": mesas})
         self.func_v.exibir_funcionarios(lst)
 
-    def listar_cardapio_e_printar(self) -> None:
-        self.cardapio_v.exibir_cardapio(self._cardapio_list())
+    def contratar_garcom_e_printar(self, nome: str, salario: float) -> None:
+        nome = (nome or "").strip()
+        if not nome:
+            self.console.print_lines(["[ERRO] Nome do garçom não pode ser vazio."])
+            return
+        if salario <= 0:
+            self.console.print_lines(["[ERRO] Salário deve ser positivo."])
+            return
+        g = self._func.contratar_garcom(nome, salario)
+        self.console.print_lines([f"[OK] Garçom {g.nome} (ID {g.id_funcionario}) contratado(a)."])
+        self.listar_equipe_e_printar()
+
+    def contratar_cozinheiro_e_printar(self, nome: str, salario: float) -> None:
+        nome = (nome or "").strip()
+        if not nome:
+            self.console.print_lines(["[ERRO] Nome do cozinheiro não pode ser vazio."])
+            return
+        if salario <= 0:
+            self.console.print_lines(["[ERRO] Salário deve ser positivo."])
+            return
+        c = self._func.contratar_cozinheiro(nome, salario)
+        self.console.print_lines([f"[OK] Cozinheiro(a) {c.nome} (ID {c.id_funcionario}) contratado(a)."])
+        self.listar_equipe_e_printar()
+
+    def demitir_funcionario_e_printar(self, id_func: int) -> None:
+        if id_func <= 0:
+            self.console.print_lines(["[ERRO] ID inválido."])
+            return
+        ok, func, err = self._func.demitir_funcionario(id_func)
+        if ok and func:
+            self.console.print_lines([f"[OK] Funcionário #{func.id_funcionario} ({func.nome}) demitido(a)."])
+            self.listar_equipe_e_printar()
+            return
+
+        # mensagens de erro sem brechas
+        if err == "func_nao_encontrado":
+            self.console.print_lines([f"[ERRO] Funcionário #{id_func} não encontrado."])
+        elif err == "cozinheiro_com_pedidos_em_preparo":
+            self.console.print_lines(["[ERRO] Não é possível demitir: cozinheiro possui pedidos em preparo."])
+        else:
+            self.console.print_lines(["[ERRO] Não foi possível demitir o funcionário."])
+
+    def adicionar_mesa_e_printar(self, id_mesa: int, capacidade: int) -> None:
+        if id_mesa <= 0:
+            self.console.print_lines(["[ERRO] ID da mesa deve ser positivo."])
+            return
+        if capacidade <= 0:
+            self.console.print_lines(["[ERRO] Capacidade deve ser >= 1."])
+            return
+        if self._mesa.encontrar_mesa_por_numero(id_mesa):
+            self.console.print_lines([f"[ERRO] Já existe mesa com ID {id_mesa}."])
+            return
+
+        nova = self._mesa.cadastrar_mesa(id_mesa, capacidade)
+        if not nova:
+            self.console.print_lines(["[ERRO] Não foi possível cadastrar a mesa."])
+            return
+
+        self.console.print_lines([f"[OK] Mesa {nova.id_mesa} cadastrada (capacidade {nova.capacidade})."])
+        # Mostra a lista atualizada e tenta realocar fila (FIFO estrito)
+        self.mesa_v.exibir_mesas([self._mesa_dict(m) for m in self._mesa.listar_mesas()])
+        self.auto_alocar_e_printar(greedy=False)

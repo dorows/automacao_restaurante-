@@ -16,9 +16,30 @@ class ConsoleView:
         return parts[0].lower(), parts[1:]
 
     def render_dashboard(self, dados: Dict[str, object]) -> None:
-        print("\n=== PAINEL ===")
+        print("\n--- Automação de Restaurante ---")
         # cabeçalho sucinto
         print(f"Mesas: {len(dados.get('mesas', []))}  |  "
               f"Fila: {len(dados.get('fila', []))}  |  "
               f"Garçons: {len(dados.get('garcons', []))}  |  "
               f"Pratos: {len(dados.get('cardapio', []))}")
+    
+    def _help_lines(self) -> List[str]:
+        return [
+            "",
+            "Comandos disponíveis:",
+            "  chegada <qtd>",
+            "  pedir <mesa_id> <prato_id> <qtd>",
+            "  confirmar <mesa_id>",
+            "  pronto <mesa_id>",
+            "  entregar <mesa_id>",
+            "  finalizar <mesa_id>",
+            "  limpar <mesa_id>",
+            "  cardapio",
+            "  equipe",
+            "  contratar_garcom <nome> <salario>",
+            "  contratar_cozinheiro <nome> <salario>",
+            "  demitir <id_func>",
+            "  adicionar_mesa <id> <capacidade>",
+            "  ajuda | help | ?,"
+            ""
+        ]
