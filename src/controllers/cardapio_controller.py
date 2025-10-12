@@ -19,7 +19,6 @@ class CardapioController:
         self._cardapio.adicionar_prato(prato4)
 
     def buscar_prato_por_id(self, id_prato: int) -> Optional[Prato]:
-
         return self._cardapio.buscar_prato_por_id(id_prato)
 
     @property

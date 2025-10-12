@@ -1,210 +1,210 @@
-from typing import List, Optional
+from __future__ import annotations
+from typing import List, Dict, Optional
 
-from .mesa_controller import MesaController
-from .funcionario_controller import FuncionarioController
-from .cardapio_controller import CardapioController
-from .pedido_controller import PedidoController
-from .conta_controller import ContaController
-from .fila_de_espera_controller import FilaController
-from .grupo_cliente_controller import ClienteController
+from views.console_view import ConsoleView
+from views.mesa_view import MesaView
+from views.fila_view import FilaView
+from views.conta_view import ContaView
+from views.cardapio_view import CardapioView
+from views.funcionario_view import FuncionarioView
 
-from core.result import Result
+from controllers.mesa_controller import MesaController
+from controllers.conta_controller import ContaController
+from controllers.fila_de_espera_controller import FilaController
+from controllers.funcionario_controller import FuncionarioController
+from controllers.cardapio_controller import CardapioController
+from controllers.grupo_cliente_controller import ClienteController
 
-from models.mesa import Mesa
-from models.conta import Conta
-from models.cardapio import Cardapio
-from models.fila_de_espera import FilaDeEspera
-from models.funcionario import Funcionario
 from models.status_enums import StatusMesa
+from models.mesa import Mesa
+from models.grupo_cliente import GrupoCliente
+from models.garcom import Garcom
+from models.cozinheiro import Cozinheiro
+from models.conta import Conta
 
 class RestauranteController:
-    def __init__(self):
-        # Sub-sistemas (cada um faz seu setup_inicial internamente, quando aplicável)
-        self._mesa_controller = MesaController()
-        self._funcionario_controller = FuncionarioController()
-        self._cardapio_controller = CardapioController()
-        self._pedido_controller = PedidoController()
-        self._conta_controller = ContaController()
-        self._fila_controller = FilaController()
-        self._cliente_controller = ClienteController()
+    "Coordena fluxos gerais do restaurante e imprime via views passivas."
+    def __init__(self,
+                 console_v: ConsoleView,
+                 mesa_v: MesaView,
+                 fila_v: FilaView,
+                 conta_v: ContaView,
+                 cardapio_v: CardapioView,
+                 func_v: FuncionarioView,
+                 mesa_controller: MesaController,
+                 conta_controller: ContaController,
+                 fila_controller: FilaController,
+                 funcionario_controller: FuncionarioController,
+                 cardapio_controller: CardapioController,
+                 cliente_controller: ClienteController) -> None:
+        self.console = console_v
+        self.mesa_v = mesa_v
+        self.fila_v = fila_v
+        self.conta_v = conta_v
+        self.cardapio_v = cardapio_v
+        self.func_v = func_v
 
-    @property
-    def mesas(self) -> List[Mesa]:
-        return self._mesa_controller.listar_mesas()
+        self._mesa = mesa_controller
+        self._conta = conta_controller
+        self._fila = fila_controller
+        self._func = funcionario_controller
+        self._cardapio = cardapio_controller
+        self._cliente = cliente_controller
 
-    @property
-    def fila_de_espera(self) -> FilaDeEspera:
-        return self._fila_controller.get_fila()
+    # --------------------------- helpers: Model -> primitivos --------------------
+    def _mesa_dict(self, m: Mesa) -> Dict[str, object]:
+        return {
+            "id": m.id_mesa,
+            "cap": m.capacidade,
+            "status": m.status.name if hasattr(m.status, "name") else str(m.status),
+            "garcom": m.garcom_responsavel.nome if getattr(m, "garcom_responsavel", None) else None
+        }
 
-    @property
-    def cardapio(self) -> Cardapio:
-        return self._cardapio_controller.cardapio
+    def _fila_list(self) -> List[Dict[str, object]]:
+        out: List[Dict[str, object]] = []
+        for i, g in enumerate(self._fila.listar(), start=1):
+            out.append({"pos": i, "nome": f"Grupo {g.id_grupo}", "pessoas": g.numero_pessoas})
+        return out
 
-    @property
-    def funcionarios(self) -> List[Funcionario]:
-        return self._funcionario_controller.listar_funcionarios()
+    def _garcons_list(self) -> List[Dict[str, object]]:
+        out: List[Dict[str, object]] = []
+        for f in self._func.listar_funcionarios():
+            if isinstance(f, Garcom):
+                out.append({"id": f.id_funcionario, "nome": f.nome, "mesas": len(f.mesas_atendidas)})
+        return out
 
-    # Casos de uso principais (invocados pela View)
-    def receber_clientes(self, numero_pessoas: int) -> Result:
-        try:
-            novo_grupo = self._cliente_controller.criar_grupo(numero_pessoas)
-        except ValueError:
-            return Result(status="invalid", error="grupo_invalido")
+    def _cardapio_list(self) -> List[Dict[str, object]]:
+        out: List[Dict[str, object]] = []
+        for p in self._cardapio.cardapio.pratos:
+            out.append({"id": p.id_prato, "nome": p.nome, "preco": p.preco})
+        return out
 
-        mesa_livre = self._mesa_controller.encontrar_mesa_livre(novo_grupo.numero_pessoas)
-        if mesa_livre:
-            garcom = self._funcionario_controller.encontrar_garcom_disponivel()
-            if garcom:
-                self._mesa_controller.designar_garcom(mesa_livre, garcom)
+    def _conta_dict(self, conta: Conta) -> Dict[str, object]:
+        itens = []
+        for ped in conta.pedidos:
+            linhas = [f"{it.quantidade}x {it.prato.nome} - R$ {(it.quantidade * it.prato.preco):.2f}" for it in ped.itens]
+            itens.append({
+                "pedido_id": ped.id_pedido,
+                "status": ped.status.name if hasattr(ped.status, "name") else str(ped.status),
+                "linhas": linhas
+            })
+        return {
+            "id_conta": conta.id_conta,
+            "mesa_id": conta.mesa.id_mesa,
+            "cliente": f"Grupo {conta.grupo_cliente.id_grupo}",
+            "itens": itens,
+            "total": conta.calcular_total()
+        }
 
-            # Ocupa mesa e abre conta
-            self._mesa_controller.ocupar_mesa(mesa_livre.id_mesa, novo_grupo)
-            conta = self._conta_controller.abrir_nova_conta(novo_grupo, mesa_livre)
+    # ------------------------------ dashboard ------------------------------------
+    def print_dashboard(self) -> None:
+        dados = {
+            "mesas": [self._mesa_dict(m) for m in self._mesa.listar_mesas()],
+            "fila": self._fila_list(),
+            "garcons": self._garcons_list(),
+            "cardapio": self._cardapio_list(),
+        }
+        self.console.render_dashboard(dados)
+        self.mesa_v.exibir_mesas(dados["mesas"])
+        self.fila_v.exibir_fila(dados["fila"])
 
-            return Result(
-                status="ok",
-                data={"grupo": novo_grupo, "mesa": mesa_livre, "garcom": garcom, "conta": conta},
-                message_key="grupo_alocado"
-            )
-
-        # Sem mesa: vai pra fila
-        self._fila_controller.adicionar_grupo(novo_grupo)
-        return Result(status="ok", data={"grupo": novo_grupo}, message_key="grupo_para_fila")
-
-    def realizar_pedido(self, numero_mesa: int, id_prato: int, quantidade: int) -> Result:
-        mesa = self._mesa_controller.encontrar_mesa_por_numero(numero_mesa)
-        if not mesa or mesa.status != StatusMesa.OCUPADA:
-            return Result(status="invalid", error="mesa_invalida")
-
-        conta = self._conta_controller.encontrar_conta_por_mesa(numero_mesa)
-        if not conta:
-            return Result(status="not_found", error="conta_nao_encontrada")
-
-        prato = self._cardapio_controller.buscar_prato_por_id(id_prato)
-        if not prato:
-            return Result(status="not_found", error="prato_nao_encontrado")
-
-        ok = self._pedido_controller.adicionar_item_a_conta(conta, prato, quantidade)
-        if not ok:
-            return Result(status="invalid", error="item_nao_adicionado")
-
-        return Result(status="ok", data={"conta": conta, "prato": prato, "quantidade": quantidade},
-                      message_key="item_adicionado")
-
-    def finalizar_atendimento(self, numero_mesa: int) -> Result:
-        mesa = self._mesa_controller.encontrar_mesa_por_numero(numero_mesa)
-        if not mesa or mesa.status != StatusMesa.OCUPADA:
-            return Result(status="invalid", error="mesa_invalida")
-
-        conta = self._conta_controller.encontrar_conta_por_mesa(numero_mesa)
-        if not conta:
-            return Result(status="not_found", error="conta_nao_encontrada")
-
-        self._conta_controller.fechar_conta(conta)
-
-        self._mesa_controller.liberar_mesa(numero_mesa)
-
-        return Result(status="ok", data={"conta": conta, "mesa": mesa}, message_key="conta_fechada")
-
-    def demitir_funcionario(self, id_funcionario: int) -> Result:
-        ok, func, err = self._funcionario_controller.demitir_funcionario(id_funcionario)
-        if not ok:
-            if err == "func_nao_encontrado":
-                return Result(status="not_found", error=err)
-            if err == "cozinheiro_com_pedidos_em_preparo":
-                return Result(status="invalid", error=err)
-            return Result(status="error", error=err or "erro_desconhecido")
-
-        # Descobrir "tipo" para a View:
-        tipo = func.__class__.__name__  # "Garcom", "Cozinheiro" ou "Funcionario"
-        return Result(status="ok",
-                      data={"id": func.id_funcionario, "nome": func.nome, "tipo": tipo},
-                      message_key="func_demitido")
-
-    def encontrar_mesa(self, numero_mesa: int) -> Optional[Mesa]:
-        return self._mesa_controller.encontrar_mesa_por_numero(numero_mesa)
-
-    def limpar_mesa(self, numero_mesa: int) -> Result:
-        """
-        Expõe uma limpeza manual da mesa (se sua UI de console tiver esse comando).
-        """
-        mesa = self._mesa_controller.encontrar_mesa_por_numero(numero_mesa)
-        if not mesa:
-            return Result(status="not_found", error="mesa_invalida")
-
-        ok = mesa.limpar()
-        if not ok:
-            return Result(status="invalid", error="mesa_nao_suja")
-
-        return Result(status="ok", data={"mesa": mesa}, message_key="mesa_limpa")
-
-    def cadastrar_mesa(self, id_mesa: int, capacidade: int):
-        if capacidade <= 0:
-            return Result(status="invalid", error="capacidade_invalida")
-        if self._mesa_controller.encontrar_mesa_por_numero(id_mesa):
-            return Result(status="conflict", error="mesa_ja_existe")
-        mesa = self._mesa_controller.cadastrar_mesa(id_mesa, capacidade)
-        return Result(status="ok", data={"mesa": mesa}, message_key="mesa_cadastrada")
-
-    def confirmar_pedido(self, id_pedido: int) -> Result:
-        p = self._pedido_controller.encontrar_pedido_por_id(id_pedido)
-        if not p:
-            return Result(status="not_found", error="pedido_nao_encontrado")
-        if not self._pedido_controller.confirmar_pedido(id_pedido):
-            return Result(status="invalid", error="pedido_nao_confirmado")
-        self._pedido_controller.iniciar_preparo(id_pedido)
-        return Result(status="ok", data={"pedido": p}, message_key="pedido_confirmado")
-    
-    def pedido_pronto(self, id_pedido: int) -> Result:
-        p = self._pedido_controller.encontrar_pedido_por_id(id_pedido)
-        if not p:
-            return Result(status="not_found", error="pedido_nao_encontrado")
-        if not self._pedido_controller.marcar_pronto(id_pedido):
-            return Result(status="invalid", error="pedido_nao_pronto")
-        return Result(status="ok", data={"pedido": p}, message_key="pedido_pronto")
-
-    def entregar_pedido(self, id_pedido: int) -> Result:
-        p = self._pedido_controller.encontrar_pedido_por_id(id_pedido)
-        if not p:
-            return Result(status="not_found", error="pedido_nao_encontrado")
-        if not self._pedido_controller.marcar_entregue(id_pedido):
-            return Result(status="invalid", error="pedido_nao_entregue")
-        return Result(status="ok", data={"pedido": p}, message_key="pedido_entregue")
-
-    def tentar_alocar_fila(self, greedy: bool = False) -> list[Result]:
-
-        resultados: list[Result] = []
-        fila_snapshot = self._fila_controller.listar()  # cópia
-
-        for grupo in fila_snapshot:
-            # tenta achar a melhor mesa livre p/ este grupo
-            mesa = self._mesa_controller.encontrar_mesa_livre(grupo.numero_pessoas)  # 
+    # ----------------------------- autoalocação ----------------------------------
+    def auto_alocar_e_printar(self, greedy: bool = False) -> None:
+        msgs: List[str] = []
+        snapshot = self._fila.listar()
+        for grupo in snapshot:
+            mesa = self._mesa.encontrar_mesa_livre(grupo.numero_pessoas)
             if not mesa:
-                if not greedy:
-                    break  # FIFO estrito: primeiro que não coube => para tudo
-                else:
-                    continue  # greedy: tenta próximos
-
-            # designa garçom se houver (não é bloqueante)
-            garcom = self._funcionario_controller.encontrar_garcom_disponivel()  # 
-            if garcom:
-                self._mesa_controller.designar_garcom(mesa, garcom)  # 
-
-            # ocupa mesa; se falhar por corrida, tenta próximo conforme política
-            if not self._mesa_controller.ocupar_mesa(mesa.id_mesa, grupo):  # 
                 if not greedy:
                     break
                 else:
                     continue
 
-            # remove da fila e abre conta (ASS: precisa do arg 'mesa'!)
-            self._fila_controller.remover(grupo)
-            conta = self._conta_controller.abrir_nova_conta(grupo, mesa)  # 
+            garcom = self._func.encontrar_garcom_disponivel()
+            if garcom:
+                self._mesa.designar_garcom(mesa, garcom)
 
-            resultados.append(Result(
-                status="ok",
-                data={"grupo": grupo, "mesa": mesa, "garcom": garcom, "conta": conta},
-                message_key="grupo_alocado"
-            ))
+            if not self._mesa.ocupar_mesa(mesa.id_mesa, grupo):
+                if not greedy:
+                    break
+                else:
+                    continue
 
-        return resultados
+            self._fila.remover(grupo)
+            conta = self._conta.abrir_nova_conta(grupo, mesa)
+            msgs.append(f"[ALOCADO] Grupo {grupo.id_grupo} ({grupo.numero_pessoas}) -> Mesa {mesa.id_mesa} "
+                        f"(Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}")
+
+            # Mostra extrato inicial
+            self.conta_v.exibir_extrato(self._conta_dict(conta))
+
+        if msgs:
+            self.console.print_lines(msgs)
+
+    # ----------------------------- casos de uso ----------------------------------
+    def receber_clientes_e_printar(self, qtd: int) -> None:
+        if qtd <= 0:
+            self.console.print_lines(["[ERRO] Quantidade inválida."])
+            return
+
+        grupo = self._cliente.criar_grupo(qtd)
+        mesa = self._mesa.encontrar_mesa_livre(qtd)
+        if not mesa:
+            self._fila.adicionar_grupo(grupo)
+            self.console.print_lines([f"[FILA] Grupo {grupo.id_grupo} ({qtd}) adicionado à fila."])
+            return
+
+        garcom = self._func.encontrar_garcom_disponivel()
+        if garcom:
+            self._mesa.designar_garcom(mesa, garcom)
+
+        if not self._mesa.ocupar_mesa(mesa.id_mesa, grupo):
+            # fallback: se falhar por corrida, manda pra fila
+            self._fila.adicionar_grupo(grupo)
+            self.console.print_lines([f"[FILA] Grupo {grupo.id_grupo} ({qtd}) adicionado à fila."])
+            return
+
+        conta = self._conta.abrir_nova_conta(grupo, mesa)
+        self.console.print_lines([f"[ALOCADO] Grupo {grupo.id_grupo} -> Mesa {mesa.id_mesa} "
+                                  f"(Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}"])
+        self.conta_v.exibir_extrato(self._conta_dict(conta))
+
+    def finalizar_atendimento_e_printar(self, mesa_id: int) -> None:
+        conta = self._conta.encontrar_conta_por_mesa(mesa_id)
+        if not conta:
+            self.console.print_lines([f"[ERRO] Não há conta aberta na mesa {mesa_id}."])
+            return
+
+        total = conta.calcular_total()
+        self._conta.fechar_conta(conta)
+        liberada = self._mesa.liberar_mesa(mesa_id)
+
+        self.conta_v.exibir_extrato(self._conta_dict(conta))
+        if liberada:
+            self.console.print_lines([f"[OK] Conta #{conta.id_conta} fechada (R$ {total:.2f}). Mesa {mesa_id} liberada e limpa."])
+        else:
+            self.console.print_lines([f"[OK] Conta #{conta.id_conta} fechada (R$ {total:.2f}). Mesa {mesa_id} não pôde ser liberada agora."])
+
+    def limpar_mesa_e_printar(self, mesa_id: int) -> None:
+        mesa = self._mesa.encontrar_mesa_por_numero(mesa_id)
+        if not mesa:
+            self.console.print_lines([f"[ERRO] Mesa {mesa_id} não existe."])
+            return
+        if mesa.status == StatusMesa.SUJA:
+            if mesa.limpar():
+                self.console.print_lines([f"[OK] Mesa {mesa_id} limpa e liberada."])
+            else:
+                self.console.print_lines([f"[ERRO] Falha ao limpar a mesa {mesa_id}."])
+        else:
+            self.console.print_lines([f"[INFO] Mesa {mesa_id} não está suja (status: {mesa.status.value})."])
+
+    def listar_equipe_e_printar(self) -> None:
+        lst = []
+        for f in self._func.listar_funcionarios():
+            papel = "Garçom" if isinstance(f, Garcom) else ("Cozinheiro" if isinstance(f, Cozinheiro) else "Funcionário")
+            mesas = len(getattr(f, "mesas_atendidas", [])) if isinstance(f, Garcom) else 0
+            lst.append({"id": f.id_funcionario, "nome": f.nome, "papel": papel, "mesas": mesas})
+        self.func_v.exibir_funcionarios(lst)
+
+    def listar_cardapio_e_printar(self) -> None:
+        self.cardapio_v.exibir_cardapio(self._cardapio_list())

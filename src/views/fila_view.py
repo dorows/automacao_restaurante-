@@ -1,20 +1,20 @@
-from models.fila_de_espera import FilaDeEspera
-from models.grupo_cliente import GrupoCliente
+# FilaView: impressão da fila de espera
+from typing import List, Dict, Optional
 
 class FilaView:
-    def exibir_fila(self, fila):
+    def exibir_fila(self, fila: List[Dict[str, object]]) -> None:
         print("\n--- FILA DE ESPERA ---")
-        if len(fila) == 0:
+        if not fila:
             print("A fila de espera está vazia.")
             return
-        for pos, grupo in enumerate(fila, start=1):
-            print(f"{pos:02d}. Grupo {grupo.id_grupo} - {grupo.numero_pessoas} pessoas")
+        for g in fila:
+            print(f"{g['pos']:02d}. {g['nome']} - {g['pessoas']} pessoas")
 
-    def exibir_chamada(self, grupo: GrupoCliente | None):
+    def exibir_chamada(self, grupo: Optional[Dict[str, object]]) -> None:
         if grupo:
-            print(f"Chamando {grupo}")
+            print(f"Chamando {grupo['nome']} ({grupo['pessoas']} pessoas)")
         else:
             print("Nenhum grupo adequado disponível para a capacidade informada.")
 
-    def exibir_mensagem_sucesso(self, mensagem: str): print(f"[OK] {mensagem}")
-    def exibir_mensagem_erro(self, mensagem: str): print(f"[ERRO] {mensagem}")
+    def ok(self, msg: str) -> None: print(f"[OK] {msg}")
+    def erro(self, msg: str) -> None: print(f"[ERRO] {msg}")

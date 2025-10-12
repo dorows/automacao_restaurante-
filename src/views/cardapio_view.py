@@ -1,17 +1,17 @@
-from typing import Iterable
-from models.cardapio import Cardapio
-from models.prato import Prato
+from typing import List, Dict
 
 class CardapioView:
-    def exibir_cardapio(self, cardapio: Cardapio):
+    def exibir_cardapio(self, pratos: List[Dict[str, object]]) -> None:
+        """
+        pratos: [{ "id":int, "nome":str, "preco":float }]
+        """
         print("\n" + "="*25 + " CARDÁPIO " + "="*25)
-        pratos: Iterable[Prato] = cardapio.pratos
         if not pratos:
             print("Nenhum prato cadastrado.")
         else:
-            for prato in pratos:
-                print(f"{prato.id_prato:>3} | {prato.nome:<30} R$ {prato.preco:>7.2f}")
+            for p in pratos:
+                print(f"{p['id']:>3} | {p['nome']:<30} R$ {p['preco']:>7.2f}")
         print("="*62)
 
-    def exibir_mensagem_sucesso(self, mensagem: str): print(f"[OK] {mensagem}")
-    def exibir_mensagem_erro(self, mensagem: str): print(f"[ERRO] {mensagem}")
+    def ok(self, msg: str) -> None: print(f"[OK] {msg}")
+    def erro(self, msg: str) -> None: print(f"[ERRO] {msg}")

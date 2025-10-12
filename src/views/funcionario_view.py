@@ -1,15 +1,14 @@
-from typing import List
-from models.funcionario import Funcionario
+from typing import List, Dict
 
 class FuncionarioView:
-    def exibir_funcionarios(self, funcionarios: List[Funcionario]):
+    def exibir_funcionarios(self, funcionarios: List[Dict[str, object]]) -> None:
         print("\n--- EQUIPE DO RESTAURANTE ---")
         if not funcionarios:
             print("Nenhum funcionário cadastrado.")
             return
-        for func in funcionarios:
-            print(func.exibir_dados())
-            print("-" * 25)
+        for f in funcionarios:
+            print(f"#{f['id']:>2} | {f['papel']:<11} | {f['nome']:<20} | mesas:{f['mesas']}")
+            print("-" * 45)
 
-    def exibir_mensagem_sucesso(self, mensagem: str): print(f"[OK] {mensagem}")
-    def exibir_mensagem_erro(self, mensagem: str): print(f"[ERRO] {mensagem}")
+    def ok(self, msg: str) -> None: print(f"[OK] {msg}")
+    def erro(self, msg: str) -> None: print(f"[ERRO] {msg}")

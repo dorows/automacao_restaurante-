@@ -1,23 +1,24 @@
-from models.conta import Conta
+from typing import Dict, List
 
 class ContaView:
-    def exibir_extrato(self, conta: Conta):
+    def exibir_extrato(self, conta: Dict[str, object]) -> None:
         print("\n" + "*"*35)
-        print(f"EXTRATO CONTA #{conta.id_conta}".center(35))
-        print(f"Mesa: {conta.mesa.id_mesa} | Cliente: {conta.grupo_cliente}".center(35))
+        print(f"EXTRATO CONTA #{conta['id_conta']}".center(35))
+        print(f"Mesa: {conta['mesa_id']} | Cliente: {conta['cliente']}".center(35))
         print("*"*35)
 
-        if not conta.pedidos:
+        itens = conta.get("itens", [])
+        if not itens:
             print("Nenhum item consumido.")
         else:
-            for pedido in conta.pedidos:
-                print(f" > Pedido ID: {pedido.id_pedido} ({pedido.status.value})")
-                for item in pedido.itens:
-                    print(f"   - {str(item)}")
+            for ped in itens:
+                print(f" > Pedido ID: {ped['pedido_id']} ({ped['status']})")
+                for ln in ped.get("linhas", []):
+                    print(f"   - {ln}")
 
         print("-"*35)
-        print(f"TOTAL GERAL: R$ {conta.calcular_total():.2f}".center(35))
+        print(f"TOTAL GERAL: R$ {conta['total']:.2f}".center(35))
         print("*"*35)
 
-    def exibir_mensagem_sucesso(self, mensagem: str): print(f"[OK] {mensagem}")
-    def exibir_mensagem_erro(self, mensagem: str): print(f"[ERRO] {mensagem}")
+    def ok(self, msg: str) -> None: print(f"[OK] {msg}")
+    def erro(self, msg: str) -> None: print(f"[ERRO] {msg}")
