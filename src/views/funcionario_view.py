@@ -16,10 +16,6 @@ class FuncionarioView:
                 linha += f" | gorjetas: R$ {f['gorjetas']:.2f}"
                 linha += f" | mesas:{f['mesas']}"
             
-            else:
-                linha += f" | pedidos:{f['pedidos']}"
-
-
             print(linha)
             print("-" * (len(linha) if 'gorjetas' in f and f['gorjetas'] is not None else 45))
 

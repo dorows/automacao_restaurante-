@@ -249,8 +249,7 @@ class RestauranteController:
                     dados_func["gorjetas"] = f._gorjetas 
                 elif isinstance(f, Cozinheiro):
                     dados_func["papel"] = "Cozinheiro"
-                    dados_func["pedidos"] = len(f.pedidos_em_preparo)
-                
+                                    
                 lista_para_view.append(dados_func)
 
             self.func_v.exibir_funcionarios(lista_para_view)
