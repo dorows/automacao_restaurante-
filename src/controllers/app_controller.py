@@ -126,6 +126,20 @@ class AppController:
 
             elif acao in ("ajuda", "help", "?"):
                 self.console.print_lines(self.console._help_lines())
+            
+            elif acao == "renomear":
+                if len(args) < 2:
+                    raise ValueError("uso: renomear <id_func> <novo_nome>")
+                id_func = int(args[0])
+                novo_nome = " ".join(args[1:])  # aceita nomes com espaço
+                self.restaurante.renomear_funcionario_e_printar(id_func, novo_nome)
+
+            elif acao == "salario":
+                if len(args) != 2:
+                    raise ValueError("uso: salario <id_func> <novo_salario>")
+                id_func = int(args[0])
+                novo_salario = float(args[1])
+                self.restaurante.atualizar_salario_funcionario_e_printar(id_func, novo_salario)
 
             elif acao == "": 
                 pass 

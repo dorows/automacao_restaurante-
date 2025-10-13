@@ -102,7 +102,7 @@ class RestauranteController:
         }
     def get_cardapio_data(self) -> List[Dict[str, object]]:
         return self._cardapio_list()
-    # ------------------------------ dashboard ------------------------------------
+
     def print_dashboard(self) -> None:
         dados = {
             "mesas": [self._mesa_dict(m) for m in self._mesa.listar_mesas()],
@@ -114,7 +114,6 @@ class RestauranteController:
         self.mesa_v.exibir_mesas(dados["mesas"])
         self.fila_v.exibir_fila(dados["fila"])
 
-    # ----------------------------- autoalocação ----------------------------------
     def auto_alocar_e_printar(self, greedy: bool = False) -> None:
         try:
             msgs: List[str] = []
@@ -156,7 +155,6 @@ class RestauranteController:
         except Exception as e:
             self.console.print_lines([f"[ERRO] Falha durante a auto-alocação: {e}"])
 
-    # ----------------------------- casos de uso mesa/conta ------------------------
     def receber_clientes_e_printar(self, qtd: int) -> None:
         try:
             grupo, msg_grupo = self._cliente.criar_grupo(qtd)
@@ -232,7 +230,6 @@ class RestauranteController:
             except (ValueError, TypeError) as e:
                 self.console.print_lines([f"[ERRO] {e}"])
 
-    # ----------------------------- equipe: listar/contratar/demitir --------------
     def listar_equipe_e_printar(self) -> None:
 
         try:
@@ -243,6 +240,7 @@ class RestauranteController:
                     "nome": f.nome,
                     "papel": "Funcionário", 
                     "mesas": 0,
+                    "salario": f.salario_base,
                     "gorjetas": None 
                 }
                 if isinstance(f, Garcom):
@@ -251,6 +249,7 @@ class RestauranteController:
                     dados_func["gorjetas"] = f._gorjetas 
                 elif isinstance(f, Cozinheiro):
                     dados_func["papel"] = "Cozinheiro"
+                    dados_func["pedidos"] = len(f.pedidos_em_preparo)
                 
                 lista_para_view.append(dados_func)
 
@@ -305,3 +304,11 @@ class RestauranteController:
         
         except Exception as e:
             self.console.print_lines([f"[ERRO] Não foi possível gerar as estatísticas: {e}"])
+    
+    def renomear_funcionario_e_printar(self, id_func: int, novo_nome: str) -> None:
+        ok, msg = self._func.atualizar_nome(id_func, novo_nome)
+        self.console.print_lines([msg])
+
+    def atualizar_salario_funcionario_e_printar(self, id_func: int, novo_salario: float) -> None:
+        ok, msg = self._func.atualizar_salario(id_func, novo_salario)
+        self.console.print_lines([msg])

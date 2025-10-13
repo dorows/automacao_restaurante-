@@ -46,6 +46,8 @@ class ConsoleView:
             "  contratar_garcom <nome> <salario>",
             "  contratar_cozinheiro <nome> <salario>",
             "  demitir <id_func>",
+            "  renomear <id_func> <novo_nome>",
+            "  salario  <id_func> <novo_salario>",
             "  adicionar_mesa <id> <capacidade>",
             "  stats",
             "  ajuda | help | ?",

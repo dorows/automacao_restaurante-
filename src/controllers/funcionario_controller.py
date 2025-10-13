@@ -75,3 +75,23 @@ class FuncionarioController:
     
     def encontrar_funcionario_por_id(self, id_funcionario: int) -> Optional[Funcionario]:
         return next((f for f in self._funcionarios if f.id_funcionario == id_funcionario), None)
+
+    def atualizar_nome(self, id_funcionario: int, novo_nome: str) -> tuple[bool, str]:
+        try:
+            func = self.encontrar_funcionario_por_id(id_funcionario)
+            if not func:
+                return False, f"Funcionário com ID {id_funcionario} não encontrado."
+            func.nome = novo_nome  # usa o setter do model (valida vazio, normaliza etc.)
+            return True, f"[OK] Nome atualizado para '{func.nome}' (ID {func.id_funcionario})."
+        except (ValueError, TypeError) as e:
+            return False, f"[ERRO] {e}"
+
+    def atualizar_salario(self, id_funcionario: int, novo_salario: float) -> tuple[bool, str]:
+        try:
+            func = self.encontrar_funcionario_por_id(id_funcionario)
+            if not func:
+                return False, f"Funcionário com ID {id_funcionario} não encontrado."
+            func.salario_base = float(novo_salario)  # usa o setter do model (valida negativo etc.)
+            return True, f"[OK] Salário atualizado para R$ {func.salario_base:.2f} (ID {func.id_funcionario})."
+        except (ValueError, TypeError) as e:
+            return False, f"[ERRO] {e}"
