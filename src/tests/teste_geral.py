@@ -4,11 +4,8 @@ import sys
 import os
 from typing import List
 
-# --- CÓDIGO DE CORREÇÃO ---
-# Adiciona a pasta 'src' (que está um nível acima da pasta 'tests')
-# ao caminho de busca do Python.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# Importa todos os componentes necessários para montar a aplicação
+
 from controllers.app_controller import AppController
 from controllers.restaurante_controller import RestauranteController
 from controllers.mesa_controller import MesaController
@@ -28,24 +25,19 @@ from views.pedido_view import PedidoView
 from views.funcionario_view import FuncionarioView
 
 def run_command(app: AppController, command: str):
-    """Função auxiliar para simular a digitação de um comando e exibir o que está a ser testado."""
-    print("\n" + "#"*60)
+    print("\n" + "-"*60)
     print(f"# EXECUTANDO COMANDO: '{command}'")
-    print("#"*60)
+    print("-"*60)
     
-    # Simula a leitura e o despacho do comando
     parts = command.strip().lower().split()
     acao = parts[0]
     args = parts[1:]
     app._dispatch(acao, args)
-    # Pausa para permitir a leitura do output
     input("Pressione Enter para continuar...")
 
 def teste_completo():
-    """Executa uma simulação completa do restaurante."""
-    
-    # 1. Montagem da Aplicação (Injeção de Dependência)
-    # Instanciando todas as Views
+
+
     console_v = ConsoleView()
     mesa_v = MesaView()
     fila_v = FilaView()
@@ -65,9 +57,22 @@ def teste_completo():
     # O PedidoController depende de outros controladores
     pedido_c = PedidoController(console_v, pedido_v, conta_v, conta_c, cardapio_c)
 
-    # O RestauranteController depende de todos os especialistas
-    restaurante_c = RestauranteController(console_v, mesa_v, fila_v, conta_v, cardapio_v, func_v,
-                                          mesa_c, conta_c, fila_c, func_c, cardapio_c, cliente_c)
+    restaurante_c = RestauranteController(
+        console_v=console_v,
+        mesa_v=mesa_v,
+        fila_v=fila_v,
+        conta_v=conta_v,
+        cardapio_v=cardapio_v,
+        func_v=func_v,
+        pedido_v=pedido_v, # <-- Argumento de View que estava em falta
+        mesa_controller=mesa_c,
+        conta_controller=conta_c,
+        fila_controller=fila_c,
+        funcionario_controller=func_c,
+        cardapio_controller=cardapio_c,
+        cliente_controller=cliente_c,
+        pedido_controller=pedido_c # <-- Argumento de Controller que estava em falta
+    )
 
     # O AppController orquestra tudo
     app = AppController(console_v, mesa_v, fila_v, conta_v, cardapio_v, pedido_v, func_v,
@@ -112,14 +117,11 @@ def teste_completo():
     run_command(app, "pronto 1")        # Cozinheiro termina o pedido da Mesa 1
     run_command(app, "entregar 1")      # Garçom entrega o pedido da Mesa 1
 
-    # Testando finalização e fila de espera
     run_command(app, "limpar 1")        # Tenta limpar uma mesa ocupada (deve falhar)
     run_command(app, "finalizar 1 5.50")# Finaliza Mesa 1 com R$ 5.50 de gorjeta
     
-    # Dashboard após finalizar
     app.restaurante.print_dashboard()
     
-    # Testando limpeza e auto-alocação da fila
     run_command(app, "limpar 1")        # Limpa a Mesa 1, que estava suja
                                         # O sistema deve auto-alocar o Grupo 4 (2 pessoas) na Mesa 1 (4 lugares)
 
