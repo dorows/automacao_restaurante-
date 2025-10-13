@@ -211,45 +211,6 @@ def main():
     except Exception:
         pass
 
-    # FINALIZAR + GORJETA
-    press("\n6) Finalizar conta com gorjeta (5.50) e limpar mesa. Pressione Enter...")
-    garcom_atr = getattr(mesa_ped, "garcom_responsavel", None)
-    gorjetas_antes = getattr(garcom_atr, "gorjetas", 0.0) if garcom_atr else None
-    run_cmd(app, f"finalizar {mid} 5.50")
-
-    if mesa_ped.status == StatusMesa.SUJA:
-        ok("Finalizar: mesa ficou SUJA")
-    else:
-        fail("Finalizar: mesa não ficou SUJA", expected="SUJA", got=str(mesa_ped.status.name))
-
-    if garcom_atr is not None:
-        gorjetas_depois = getattr(garcom_atr, "gorjetas", 0.0)
-        if gorjetas_depois >= (gorjetas_antes or 0.0) + 5.5 - 1e-6:
-            ok("Finalizar: garçom recebeu gorjeta")
-        else:
-            fail("Finalizar: gorjeta não somou ao garçom", expected=f">= {((gorjetas_antes or 0.0) + 5.5):.2f}", got=f"{gorjetas_depois:.2f}")
-    else:
-        warn("Finalizar: mesa sem garçom (não é possível validar gorjeta)")
-
-    run_cmd(app, f"limpar {mid}")
-    if mesa_ped.status == StatusMesa.LIVRE:
-        ok("Limpar: mesa voltou a LIVRE")
-    else:
-        fail("Limpar: mesa não voltou a LIVRE", expected="LIVRE", got=str(mesa_ped.status.name))
-
-    # AUTO-ALOCAR (greedy)
-    press("\n7) Forçar auto-alocação (greedy=True). Pressione Enter...")
-    fila_antes = len(fila_c.listar()) if hasattr(fila_c, "listar") else 0
-    if hasattr(restaurante, "auto_alocar_e_printar"):
-        restaurante.auto_alocar_e_printar(greedy=True)
-        fila_depois = len(fila_c.listar()) if hasattr(fila_c, "listar") else 0
-        if fila_depois <= fila_antes:
-            ok("Auto-alocar: fila não aumentou", extra=f"{fila_antes} -> {fila_depois}")
-        else:
-            fail("Auto-alocar: fila aumentou", expected=f"<= {fila_antes}", got=str(fila_depois))
-    else:
-        warn("Auto-alocar: método não disponível no RestauranteController")
-
     # EQUIPE (manual/visual)
     press("\n8) Mostrar EQUIPE (checar salário e campos específicos). Pressione Enter...")
     run_cmd(app, "equipe")

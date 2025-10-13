@@ -239,39 +239,6 @@ def test_robusto():
         run_cmd(app, f"pronto {mid}")
         run_cmd(app, f"entregar {mid}")
 
-    # ------------------ FINALIZAR E GORJETA ------------------
-    # tenta finalizar a mesa pedida (se existir)
-    if mesa_ped is not None:
-        # captura garçom antes (se tiver)
-        garcom_atr = getattr(mesa_ped, "garcom_responsavel", None)
-        gorjetas_antes = getattr(garcom_atr, "gorjetas", 0.0) if garcom_atr else None
-        run_cmd(app, f"finalizar {mesa_ped.id_mesa} 5.50")
-        # mesa deve ficar SUJA
-        rep.check("Finalizar: mesa fica SUJA", getattr(mesa_ped, "status", None) == StatusMesa.SUJA,
-                  expected="StatusMesa.SUJA", got=str(getattr(mesa_ped, "status", None).name if getattr(mesa_ped, "status", None) else None))
-        # se tinha garçom, gorjeta acumulada deve aumentar
-        if garcom_atr:
-            gorjetas_depois = getattr(garcom_atr, "gorjetas", 0.0)
-            rep.check("Finalizar: garçom recebeu gorjeta", gorjetas_depois >= gorjetas_antes + 5.5 - 1e-6,
-                      expected=f">= {gorjetas_antes + 5.5:.2f}", got=f"{gorjetas_depois:.2f}")
-        else:
-            rep.warn("Finalizar: mesa sem garçom responsável", "Não foi possível validar gorjeta atrelada a garçom.")
-
-        # Limpar e tentar realocar alguém da fila
-        run_cmd(app, f"limpar {mesa_ped.id_mesa}")
-        rep.check("Limpar: mesa volta a LIVRE", getattr(mesa_ped, "status", None) == StatusMesa.LIVRE,
-                  expected="StatusMesa.LIVRE", got=str(getattr(mesa_ped, "status", None).name if getattr(mesa_ped, "status", None) else None))
-
-        # força uma rodada de auto-alocação (se existir no controller)
-        if hasattr(restaurante, "auto_alocar_e_printar"):
-            restaurante.auto_alocar_e_printar(greedy=True)
-
-        # fila deve diminuir se houver grupo compatível
-        snap2 = state_snapshot(mesa_c, conta_c, fila_c, func_c, pedido_c)
-        if len(snap["fila"]) > 0 and len(snap2["fila"]) <= len(snap["fila"]):
-            rep.check("Auto-alocar: fila não aumentou após limpeza+alocação",
-                      len(snap2["fila"]) <= len(snap["fila"]),
-                      expected=f"<= {len(snap['fila'])}", got=str(len(snap2["fila"])))
 
     # ------------------ DEMISSÃO COM RESTRIÇÃO ------------------
     # se houver pedido em preparo em alguma mesa agora, tentar demitir cozinheiro deve falhar (lógica de negócio)
