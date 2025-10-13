@@ -33,6 +33,14 @@ def build_app() -> AppController:
     cardapio_ctrl = CardapioController()
     cliente_ctrl = ClienteController()
 
+    pedido_ctrl = PedidoController(
+        console_v=console_v,
+        pedido_v=pedido_v,
+        conta_v=conta_v,
+        conta_controller=conta_ctrl,
+        cardapio_controller=cardapio_ctrl,
+    )
+
     restaurante_ctrl = RestauranteController(
         console_v=console_v,
         mesa_v=mesa_v,
@@ -40,20 +48,14 @@ def build_app() -> AppController:
         conta_v=conta_v,
         cardapio_v=cardapio_v,
         func_v=func_v,
+        pedido_v=pedido_v,
         mesa_controller=mesa_ctrl,
         conta_controller=conta_ctrl,
         fila_controller=fila_ctrl,
         funcionario_controller=func_ctrl,
         cardapio_controller=cardapio_ctrl,
         cliente_controller=cliente_ctrl,
-    )
-
-    pedido_ctrl = PedidoController(
-        console_v=console_v,
-        pedido_v=pedido_v,
-        conta_v=conta_v,
-        conta_controller=conta_ctrl,
-        cardapio_controller=cardapio_ctrl,
+        pedido_controller=pedido_ctrl 
     )
 
     app = AppController(

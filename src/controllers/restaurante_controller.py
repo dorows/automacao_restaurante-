@@ -7,6 +7,7 @@ from views.fila_view import FilaView
 from views.conta_view import ContaView
 from views.cardapio_view import CardapioView
 from views.funcionario_view import FuncionarioView
+from views.pedido_view import PedidoView
 
 from controllers.mesa_controller import MesaController
 from controllers.conta_controller import ContaController
@@ -14,6 +15,7 @@ from controllers.fila_de_espera_controller import FilaController
 from controllers.funcionario_controller import FuncionarioController
 from controllers.cardapio_controller import CardapioController
 from controllers.grupo_cliente_controller import ClienteController
+from controllers.pedido_controller import PedidoController
 
 from models.status_enums import StatusMesa
 from models.mesa import Mesa
@@ -23,7 +25,6 @@ from models.cozinheiro import Cozinheiro
 from models.conta import Conta
 
 class RestauranteController:
-    """Coordena fluxos gerais do restaurante e imprime via views passivas."""
     def __init__(self,
                  console_v: ConsoleView,
                  mesa_v: MesaView,
@@ -31,19 +32,24 @@ class RestauranteController:
                  conta_v: ContaView,
                  cardapio_v: CardapioView,
                  func_v: FuncionarioView,
+                 pedido_v: PedidoView,
                  mesa_controller: MesaController,
                  conta_controller: ContaController,
                  fila_controller: FilaController,
                  funcionario_controller: FuncionarioController,
                  cardapio_controller: CardapioController,
-                 cliente_controller: ClienteController) -> None:
+                 cliente_controller: ClienteController,
+                 pedido_controller: PedidoController) -> None:
+        
         self.console = console_v
         self.mesa_v = mesa_v
         self.fila_v = fila_v
         self.conta_v = conta_v
         self.cardapio_v = cardapio_v
         self.func_v = func_v
+        self.pedido_v = pedido_v
 
+        self._pedido_controller = pedido_controller
         self._mesa = mesa_controller
         self._conta = conta_controller
         self._fila = fila_controller
@@ -51,7 +57,6 @@ class RestauranteController:
         self._cardapio = cardapio_controller
         self._cliente = cliente_controller
 
-    # --------------------------- helpers: Model -> primitivos --------------------
     def _mesa_dict(self, m: Mesa) -> Dict[str, object]:
         return {
             "id": m.id_mesa,
@@ -95,7 +100,8 @@ class RestauranteController:
             "itens": itens,
             "total": conta.calcular_total()
         }
-
+    def get_cardapio_data(self) -> List[Dict[str, object]]:
+        return self._cardapio_list()
     # ------------------------------ dashboard ------------------------------------
     def print_dashboard(self) -> None:
         dados = {
@@ -110,165 +116,192 @@ class RestauranteController:
 
     # ----------------------------- autoalocação ----------------------------------
     def auto_alocar_e_printar(self, greedy: bool = False) -> None:
-        msgs: List[str] = []
-        snapshot = self._fila.listar()
-        for grupo in snapshot:
-            mesa = self._mesa.encontrar_mesa_livre(grupo.numero_pessoas)
-            if not mesa:
-                if not greedy:
-                    break
-                else:
+        try:
+            msgs: List[str] = []
+            snapshot = self._fila.listar() 
+            
+            for grupo in snapshot:
+                mesa = self._mesa.encontrar_mesa_livre(grupo.numero_pessoas)
+                if not mesa:
+                    if not greedy:
+                        break
+                    else:
+                        continue
+
+                garcom = self._func.encontrar_garcom_disponivel()
+                sucesso_designacao, msg_designacao = self._mesa.designar_garcom(mesa, garcom)
+                if not sucesso_designacao:
+                    garcom = None
+                    self.console.print_lines([f"[AVISO] {msg_designacao}"])
+
+                sucesso_ocupar, msg_ocupar = self._mesa.ocupar_mesa(mesa.id_mesa, grupo)
+                if not sucesso_ocupar:
+                    if not greedy:
+                        break
+                    else:
+                        continue
+                conta, msg_conta = self._conta.abrir_nova_conta(grupo, mesa)
+                if not conta:
+                    self.console.print_lines([f"[AVISO] Falha ao auto-alocar: {msg_conta}"])
                     continue
+                self._fila.remover(grupo)
+                
+                msgs.append(f"[ALOCADO] Grupo {grupo.id_grupo} ({grupo.numero_pessoas}) -> Mesa {mesa.id_mesa} "
+                            f"(Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}")
 
-            # tenta designar garçom; se não houver disponível, segue sem
-            garcom = self._func.encontrar_garcom_disponivel()
-            if garcom:
-                ok = self._mesa.designar_garcom(mesa, garcom)
-                if not ok:
-                    garcom = None  # não deixa estado inconsistente
+                self.conta_v.exibir_extrato(self._conta_dict(conta))
 
-            if not self._mesa.ocupar_mesa(mesa.id_mesa, grupo):
-                if not greedy:
-                    break
-                else:
-                    continue
-
-            self._fila.remover(grupo)
-            conta = self._conta.abrir_nova_conta(grupo, mesa)
-            msgs.append(f"[ALOCADO] Grupo {grupo.id_grupo} ({grupo.numero_pessoas}) -> Mesa {mesa.id_mesa} "
-                        f"(Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}")
-
-            # Mostra extrato inicial
-            self.conta_v.exibir_extrato(self._conta_dict(conta))
-
-        if msgs:
-            self.console.print_lines(msgs)
+            if msgs:
+                self.console.print_lines(msgs)
+        except Exception as e:
+            self.console.print_lines([f"[ERRO] Falha durante a auto-alocação: {e}"])
 
     # ----------------------------- casos de uso mesa/conta ------------------------
     def receber_clientes_e_printar(self, qtd: int) -> None:
-        if qtd <= 0:
-            self.console.print_lines(["[ERRO] Quantidade inválida."])
-            return
+        try:
+            grupo, msg_grupo = self._cliente.criar_grupo(qtd)
+            if not grupo:
+                raise ValueError(msg_grupo)
 
-        grupo = self._cliente.criar_grupo(qtd)
-        mesa = self._mesa.encontrar_mesa_livre(qtd)
-        if not mesa:
-            self._fila.adicionar_grupo(grupo)
-            self.console.print_lines([f"[FILA] Grupo {grupo.id_grupo} ({qtd}) adicionado à fila."])
-            return
+            mesa = self._mesa.encontrar_mesa_livre(grupo.numero_pessoas)
+            if not mesa:
+                sucesso_fila, msg_fila = self._fila.adicionar_grupo(grupo)
+                if not sucesso_fila: 
+                    raise ValueError(msg_fila)
+                self.console.print_lines([f"[FILA] {grupo} adicionado à fila."])
+                return
 
-        garcom = self._func.encontrar_garcom_disponivel()
-        if garcom and not self._mesa.designar_garcom(mesa, garcom):
-            garcom = None  # não travar por falta de vaga
+            garcom = self._func.encontrar_garcom_disponivel()
+            sucesso_designacao, msg_designacao = self._mesa.designar_garcom(mesa, garcom)
+            if not sucesso_designacao: 
+                self.console.print_lines([f"[AVISO] {msg_designacao}"])
 
-        if not self._mesa.ocupar_mesa(mesa.id_mesa, grupo):
-            # corrida: manda pra fila
-            self._fila.adicionar_grupo(grupo)
-            self.console.print_lines([f"[FILA] Grupo {grupo.id_grupo} ({qtd}) adicionado à fila."])
-            return
+            sucesso_ocupar, msg_ocupar = self._mesa.ocupar_mesa(mesa.id_mesa, grupo)
+            if not sucesso_ocupar: 
+                raise RuntimeError(msg_ocupar)
+            conta, msg_conta = self._conta.abrir_nova_conta(grupo, mesa)
+            if not conta:
+                raise RuntimeError(f"Falha crítica ao abrir conta: {msg_conta}")
 
-        conta = self._conta.abrir_nova_conta(grupo, mesa)
-        self.console.print_lines([f"[ALOCADO] Grupo {grupo.id_grupo} -> Mesa {mesa.id_mesa} "
-                                  f"(Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}"])
-        self.conta_v.exibir_extrato(self._conta_dict(conta))
+            self.console.print_lines([f"[ALOCADO] {grupo} -> Mesa {mesa.id_mesa} (Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}"])
+            self.conta_v.exibir_extrato(self._conta_dict(conta))
 
-    def finalizar_atendimento_e_printar(self, mesa_id: int) -> None:
-        conta = self._conta.encontrar_conta_por_mesa(mesa_id)
-        if not conta:
-            self.console.print_lines([f"[ERRO] Não há conta aberta na mesa {mesa_id}."])
-            return
+        except (ValueError, TypeError, RuntimeError) as e:
+            self.console.print_lines([f"[ERRO] {e}"])
 
-        total = conta.calcular_total()
-        self._conta.fechar_conta(conta)
-        liberada = self._mesa.liberar_mesa(mesa_id)
+    def finalizar_atendimento_e_printar(self, mesa_id: int, gorjeta: float = 0.0) -> None:
 
-        self.conta_v.exibir_extrato(self._conta_dict(conta))
-        if liberada:
-            self.console.print_lines([f"[OK] Conta #{conta.id_conta} fechada (R$ {total:.2f}). Mesa {mesa_id} liberada e limpa."])
-        else:
-            self.console.print_lines([f"[OK] Conta #{conta.id_conta} fechada (R$ {total:.2f}). Mesa {mesa_id} não pôde ser liberada agora."])
+        try:
+            conta = self._conta.encontrar_conta_por_mesa(mesa_id)
+            if not conta:
+                raise ValueError(f"Não há conta aberta na mesa {mesa_id}.")
+
+            garcom_responsavel = conta.mesa.garcom_responsavel
+            if garcom_responsavel and gorjeta > 0:
+                try:
+                    garcom_responsavel.adicionar_gorjeta(gorjeta)
+                    self.console.print_lines([f"[INFO] Gorjeta de R$ {gorjeta:.2f} registrada para o Garçom {garcom_responsavel.nome}."])
+                except (ValueError, TypeError) as e:
+                    self.console.print_lines([f"[AVISO] Não foi possível registrar a gorjeta: {e}"])
+            total = conta.calcular_total()
+            extrato_data = self._conta_dict(conta)
+
+            sucesso_conta, msg_conta = self._conta.fechar_conta(conta)
+            if not sucesso_conta:
+                raise RuntimeError(f"Falha ao fechar conta: {msg_conta}")
+
+            sucesso_mesa, msg_mesa = self._mesa.liberar_mesa(mesa_id)
+            if not sucesso_mesa:
+                self.conta_v.exibir_extrato(extrato_data)
+                raise RuntimeError(f"Falha ao libertar mesa: {msg_mesa}")
+
+            self.conta_v.exibir_extrato(extrato_data)
+            self.console.print_lines([f"[OK] Conta #{conta.id_conta} fechada (R$ {total:.2f}). {msg_mesa}"])
+
+        except (ValueError, TypeError, RuntimeError) as e:
+            self.console.print_lines([f"[ERRO] {e}"])
 
     def limpar_mesa_e_printar(self, mesa_id: int) -> None:
-        mesa = self._mesa.encontrar_mesa_por_numero(mesa_id)
-        if not mesa:
-            self.console.print_lines([f"[ERRO] Mesa {mesa_id} não existe."])
-            return
-        if mesa.status == StatusMesa.SUJA:
-            if mesa.limpar():
-                self.console.print_lines([f"[OK] Mesa {mesa_id} limpa e liberada."])
-            else:
-                self.console.print_lines([f"[ERRO] Falha ao limpar a mesa {mesa_id}."])
-        else:
-            self.console.print_lines([f"[INFO] Mesa {mesa_id} não está suja (status: {mesa.status.value})."])
+            try:
+                mesa = self._mesa.encontrar_mesa_por_numero(mesa_id)
+                if not mesa:
+                    raise ValueError(f"Mesa {mesa_id} não existe.")
+                mesa.limpar()
+                self.console.print_lines([f"[OK] Mesa {mesa_id} limpa e está livre."])
+                self.auto_alocar_e_printar(greedy=True)
+            except (ValueError, TypeError) as e:
+                self.console.print_lines([f"[ERRO] {e}"])
 
     # ----------------------------- equipe: listar/contratar/demitir --------------
     def listar_equipe_e_printar(self) -> None:
-        lst = []
-        for f in self._func.listar_funcionarios():
-            papel = "Garçom" if isinstance(f, Garcom) else ("Cozinheiro" if isinstance(f, Cozinheiro) else "Funcionário")
-            mesas = len(getattr(f, "mesas_atendidas", [])) if isinstance(f, Garcom) else 0
-            lst.append({"id": f.id_funcionario, "nome": f.nome, "papel": papel, "mesas": mesas})
-        self.func_v.exibir_funcionarios(lst)
+
+        try:
+            lista_para_view = []
+            for f in self._func.listar_funcionarios():
+                dados_func = {
+                    "id": f.id_funcionario,
+                    "nome": f.nome,
+                    "papel": "Funcionário", 
+                    "mesas": 0,
+                    "gorjetas": None 
+                }
+                if isinstance(f, Garcom):
+                    dados_func["papel"] = "Garçom"
+                    dados_func["mesas"] = len(f.mesas_atendidas)
+                    dados_func["gorjetas"] = f._gorjetas 
+                elif isinstance(f, Cozinheiro):
+                    dados_func["papel"] = "Cozinheiro"
+                
+                lista_para_view.append(dados_func)
+
+            self.func_v.exibir_funcionarios(lista_para_view)
+
+        except Exception as e:
+            self.console.print_lines([f"[ERRO] Não foi possível listar a equipe: {e}"])
 
     def contratar_garcom_e_printar(self, nome: str, salario: float) -> None:
-        nome = (nome or "").strip()
-        if not nome:
-            self.console.print_lines(["[ERRO] Nome do garçom não pode ser vazio."])
-            return
-        if salario <= 0:
-            self.console.print_lines(["[ERRO] Salário deve ser positivo."])
-            return
-        g = self._func.contratar_garcom(nome, salario)
-        self.console.print_lines([f"[OK] Garçom {g.nome} (ID {g.id_funcionario}) contratado(a)."])
-        self.listar_equipe_e_printar()
+        garcom_contratado, mensagem = self._func.contratar_garcom(nome, salario)
+        
+        self.console.print_lines([mensagem])
+        if garcom_contratado:
+            self.listar_equipe_e_printar()
 
     def contratar_cozinheiro_e_printar(self, nome: str, salario: float) -> None:
-        nome = (nome or "").strip()
-        if not nome:
-            self.console.print_lines(["[ERRO] Nome do cozinheiro não pode ser vazio."])
-            return
-        if salario <= 0:
-            self.console.print_lines(["[ERRO] Salário deve ser positivo."])
-            return
-        c = self._func.contratar_cozinheiro(nome, salario)
-        self.console.print_lines([f"[OK] Cozinheiro(a) {c.nome} (ID {c.id_funcionario}) contratado(a)."])
-        self.listar_equipe_e_printar()
+        cozinheiro_contratado, mensagem = self._func.contratar_cozinheiro(nome, salario)
+        self.console.print_lines([mensagem])
+        if cozinheiro_contratado:
+            self.listar_equipe_e_printar()
 
     def demitir_funcionario_e_printar(self, id_func: int) -> None:
-        if id_func <= 0:
-            self.console.print_lines(["[ERRO] ID inválido."])
-            return
-        ok, func, err = self._func.demitir_funcionario(id_func)
-        if ok and func:
-            self.console.print_lines([f"[OK] Funcionário #{func.id_funcionario} ({func.nome}) demitido(a)."])
+        sucesso, mensagem = self._func.demitir_funcionario(id_func)
+        self.console.print_lines([mensagem])
+        if sucesso:
             self.listar_equipe_e_printar()
-            return
-
-        # mensagens de erro sem brechas
-        if err == "func_nao_encontrado":
-            self.console.print_lines([f"[ERRO] Funcionário #{id_func} não encontrado."])
-        elif err == "cozinheiro_com_pedidos_em_preparo":
-            self.console.print_lines(["[ERRO] Não é possível demitir: cozinheiro possui pedidos em preparo."])
-        else:
-            self.console.print_lines(["[ERRO] Não foi possível demitir o funcionário."])
 
     def adicionar_mesa_e_printar(self, id_mesa: int, capacidade: int) -> None:
-        if id_mesa <= 0:
-            self.console.print_lines(["[ERRO] ID da mesa deve ser positivo."])
-            return
-        if capacidade <= 0:
-            self.console.print_lines(["[ERRO] Capacidade deve ser >= 1."])
-            return
-        if self._mesa.encontrar_mesa_por_numero(id_mesa):
-            self.console.print_lines([f"[ERRO] Já existe mesa com ID {id_mesa}."])
-            return
+        mesa_criada, mensagem = self._mesa.cadastrar_mesa(id_mesa, capacidade)
+        self.console.print_lines([mensagem])
+        if mesa_criada:
+            self.mesa_v.exibir_mesas([self._mesa_dict(m) for m in self._mesa.listar_mesas()])
+            self.auto_alocar_e_printar(greedy=False)
+    def ver_prato_mais_pedido_e_printar(self) -> None:
 
-        nova = self._mesa.cadastrar_mesa(id_mesa, capacidade)
-        if not nova:
-            self.console.print_lines(["[ERRO] Não foi possível cadastrar a mesa."])
-            return
+        try:
+            estatisticas = self._pedido_controller.get_estatisticas_pratos()
+            
+            if not estatisticas:
+                self.console.print_lines(["[INFO] Nenhuma estatística de pedidos disponível ainda."])
+                return
 
-        self.console.print_lines([f"[OK] Mesa {nova.id_mesa} cadastrada (capacidade {nova.capacidade})."])
-        # Mostra a lista atualizada e tenta realocar fila (FIFO estrito)
-        self.mesa_v.exibir_mesas([self._mesa_dict(m) for m in self._mesa.listar_mesas()])
-        self.auto_alocar_e_printar(greedy=False)
+            prato_mais_pedido = max(estatisticas, key=estatisticas.get)
+            quantidade = estatisticas[prato_mais_pedido]
+
+            dados_para_view = {
+                "prato_nome": prato_mais_pedido.nome,
+                "quantidade": quantidade
+            }
+            
+            self.pedido_v.exibir_prato_mais_pedido(dados_para_view)
+        
+        except Exception as e:
+            self.console.print_lines([f"[ERRO] Não foi possível gerar as estatísticas: {e}"])

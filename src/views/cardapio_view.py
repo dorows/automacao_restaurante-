@@ -10,8 +10,19 @@ class CardapioView:
             print("Nenhum prato cadastrado.")
         else:
             for p in pratos:
-                print(f"{p['id']:>3} | {p['nome']:<30} R$ {p['preco']:>7.2f}")
+                try:
+                    print(f"{p['id']:>3} | {p['nome']:<30} R$ {p['preco']:>7.2f}")
+                
+                except KeyError as e:
+                    self.erro(f"Item do cardápio com dados ausentes. Chave faltando: {e}")
+                
+                except (ValueError, TypeError) as e:
+                    self.erro(f"Item do cardápio com formato de valor inválido. Detalhe: {e}")
+
         print("="*62)
 
-    def ok(self, msg: str) -> None: print(f"[OK] {msg}")
-    def erro(self, msg: str) -> None: print(f"[ERRO] {msg}")
+    def ok(self, msg: str) -> None: 
+        print(f"[OK] {msg}")
+        
+    def erro(self, msg: str) -> None: 
+        print(f"[ERRO] {msg}")

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from models.mesa import Mesa
 from models.grupo_cliente import GrupoCliente
 from models.garcom import Garcom
@@ -17,8 +17,6 @@ class MesaController:
             Mesa(id_mesa=4, capacidade=6),
         ])
 
-    # -------------------------------------------------------------------------
-    # Consultas
     def listar_mesas(self) -> List[Mesa]:
         return self._mesas
 
@@ -26,7 +24,6 @@ class MesaController:
         return next((m for m in self._mesas if m.id_mesa == numero_mesa), None)
 
     def encontrar_mesa_livre(self, qtd_pessoas: int) -> Optional[Mesa]:
-        """Escolhe a menor mesa que comporte o grupo (desempate por id)."""
         melhor: Optional[Mesa] = None
         for m in self._mesas:
             if m.status == StatusMesa.LIVRE and m.capacidade >= qtd_pessoas:
@@ -36,49 +33,60 @@ class MesaController:
                     melhor = m
         return melhor
 
-    def ocupar_mesa(self, numero_mesa: int, grupo: GrupoCliente) -> bool:
-        mesa = self.encontrar_mesa_por_numero(numero_mesa)
-        return bool(mesa and mesa.ocupar(grupo))
+    def ocupar_mesa(self, numero_mesa: int, grupo: GrupoCliente) -> Tuple[bool, str]:
+        try:
+            mesa = self.encontrar_mesa_por_numero(numero_mesa)
+            if not mesa:
+                raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
+            
+            mesa.ocupar(grupo)
+            return True, f"Mesa {numero_mesa} ocupada com sucesso."
+        except (ValueError, TypeError) as e:
+            return False, str(e)
 
-    def liberar_mesa(self, numero_mesa: int) -> bool:
-        mesa = self.encontrar_mesa_por_numero(numero_mesa)
-        if mesa and mesa.status == StatusMesa.OCUPADA:
-            mesa.liberar()   # vai a SUJA
-            mesa.limpar()    # SUJA -> LIVRE; também zera conta e garçom_responsavel
-            return True
-        return False
+    def liberar_mesa(self, numero_mesa: int) -> Tuple[bool, str]:
+        try:
+            mesa = self.encontrar_mesa_por_numero(numero_mesa)
+            if not mesa:
+                raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
+            mesa.liberar() 
+            return True, f"Mesa {numero_mesa} liberada e aguardando limpeza."
+        except ValueError as e:
+            return False, str(e)
+    def limpar_mesa(self, numero_mesa: int) -> Tuple[bool, str]:
 
-    def designar_garcom(self, mesa: Mesa, garcom: Garcom) -> bool:
-        if not mesa or not garcom:
-            return False
+        try:
+            mesa = self.encontrar_mesa_por_numero(numero_mesa)
+            if not mesa:
+                raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
+            mesa.limpar() 
+            return True, f"Mesa {numero_mesa} foi limpa e está livre."
+        except ValueError as e:
+            return False, str(e)
 
-        # Se já estiver com o mesmo garçom, nada a fazer
-        if getattr(mesa, "garcom_responsavel", None) is garcom:
-            return True
 
-        # Se havia outro garçom, desfaça vínculo simétrico
-        antigo = getattr(mesa, "garcom_responsavel", None)
-        if antigo is not None and antigo is not garcom:
-            mesa.garcom_responsavel = None
-            try:
-                antigo.remover_mesa(mesa)
-            except Exception:
-                pass
+    def designar_garcom(self, mesa: Mesa, garcom: Garcom) -> Tuple[bool, str]:
+        try:
+            if not isinstance(mesa, Mesa) or not isinstance(garcom, Garcom):
+                raise TypeError("Argumentos inválidos para designar garçom.")
 
-        # Pede ao garçom para assumir a mesa; só depois escreve na mesa
-        if garcom.adicionar_mesa(mesa):
-            mesa.garcom_responsavel = garcom
-            return True
+            antigo_garcom = mesa.garcom_responsavel
+            if antigo_garcom is not garcom:
+                if antigo_garcom:
+                    antigo_garcom.remover_mesa(mesa)
+                garcom.adicionar_mesa(mesa)
+                mesa.garcom_responsavel = garcom
+            
+            return True, f"Garçom {garcom.nome} designado para a Mesa {mesa.id_mesa}."
+        except (ValueError, TypeError) as e:
+            return False, str(e)
 
-        # Se o garçom recusou (lotado), mantém mesa sem responsável
-        return False
-
-    def cadastrar_mesa(self, id_mesa: int, capacidade: int) -> Optional[Mesa]:
-        if id_mesa <= 0 or capacidade <= 0:
-            return None
-        if self.encontrar_mesa_por_numero(id_mesa) is not None:
-            return None
-
-        nova = Mesa(id_mesa=id_mesa, capacidade=capacidade)
-        self._mesas.append(nova)
-        return nova
+    def cadastrar_mesa(self, id_mesa: int, capacidade: int) -> Tuple[Optional[Mesa], str]:
+        try:
+            if self.encontrar_mesa_por_numero(id_mesa):
+                raise ValueError(f"Já existe uma mesa com o ID {id_mesa}.")
+            nova = Mesa(id_mesa=id_mesa, capacidade=capacidade)
+            self._mesas.append(nova)
+            return nova, f"Mesa {id_mesa} cadastrada com sucesso."
+        except (ValueError, TypeError) as e:
+            return None, str(e)

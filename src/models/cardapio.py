@@ -1,24 +1,23 @@
 from typing import List, Optional
-from models.prato import Prato
+from .prato import Prato  # Usando import relativo
 
 class Cardapio:
 
     def __init__(self):
-
         self._pratos: List[Prato] = []
 
     @property
     def pratos(self) -> List[Prato]:
-
         return self._pratos.copy()
 
-    def adicionar_prato(self, prato: Prato) -> bool:
+    def adicionar_prato(self, prato: Prato) -> None:
         if not isinstance(prato, Prato):
-            raise TypeError("Apenas objetos Prato podem ser adicionados ao cardápio.")
+            raise TypeError("Apenas objetos da classe Prato podem ser adicionados.")
+        
         if any(p.id_prato == prato.id_prato for p in self._pratos):
-            return False
+            raise ValueError(f"Já existe um prato cadastrado com o ID {prato.id_prato}.")
+        
         self._pratos.append(prato)
-        return True
 
     def buscar_prato_por_id(self, id_prato: int) -> Optional[Prato]:
 
@@ -28,7 +27,6 @@ class Cardapio:
         return None
 
     def exibir(self) -> str:
-
         if not self._pratos:
             return "O cardápio está vazio."
 

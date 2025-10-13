@@ -2,16 +2,24 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models.prato import Prato
+    from .prato import Prato
 
 class ItemPedido:    
     def __init__(self, prato: Prato, quantidade: int, observacao: str = ""):
-        if quantidade <= 0:
-            raise ValueError("A quantidade de um item deve ser positiva.")
+        from .prato import Prato
+
+        if not isinstance(prato, Prato):
+            raise TypeError("O item do pedido deve estar associado a um objeto Prato válido.")
+        
+        if not isinstance(quantidade, int) or quantidade <= 0:
+            raise ValueError("A quantidade de um item deve ser um número inteiro positivo.")
+
+        if not isinstance(observacao, str):
+            raise TypeError("A observação deve ser um texto (string).")
             
         self._prato: Prato = prato
         self._quantidade: int = quantidade
-        self._observacao: str = observacao
+        self._observacao: str = observacao.strip() 
 
     @property
     def prato(self) -> Prato:

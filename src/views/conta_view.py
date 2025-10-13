@@ -2,23 +2,34 @@ from typing import Dict, List
 
 class ContaView:
     def exibir_extrato(self, conta: Dict[str, object]) -> None:
-        print("\n" + "*"*35)
-        print(f"EXTRATO CONTA #{conta['id_conta']}".center(35))
-        print(f"Mesa: {conta['mesa_id']} | Cliente: {conta['cliente']}".center(35))
-        print("*"*35)
+        try:
+            print("\n" + "*"*35)
+            print(f"EXTRATO CONTA #{conta['id_conta']}".center(35))
+            print(f"Mesa: {conta['mesa_id']} | Cliente: {conta['cliente']}".center(35))
+            print("*"*35)
 
-        itens = conta.get("itens", [])
-        if not itens:
-            print("Nenhum item consumido.")
-        else:
-            for ped in itens:
-                print(f" > Pedido ID: {ped['pedido_id']} ({ped['status']})")
-                for ln in ped.get("linhas", []):
-                    print(f"   - {ln}")
+            itens = conta.get("itens", [])
+            if not itens:
+                print("Nenhum item consumido.")
+            else:
+                for ped in itens:
+                    print(f" > Pedido ID: {ped['pedido_id']} ({ped['status']})")
+                    for ln in ped.get("linhas", []):
+                        print(f"   - {ln}")
 
-        print("-"*35)
-        print(f"TOTAL GERAL: R$ {conta['total']:.2f}".center(35))
-        print("*"*35)
+            print("-"*35)
+            print(f"TOTAL GERAL: R$ {conta['total']:.2f}".center(35))
+            print("*"*35)
 
-    def ok(self, msg: str) -> None: print(f"[OK] {msg}")
-    def erro(self, msg: str) -> None: print(f"[ERRO] {msg}")
+        except KeyError as e:
+            self.erro(f"Não foi possível gerar o extrato. Dado ausente: {e}")
+        except (ValueError, TypeError) as e:
+            self.erro(f"Não foi possível gerar o extrato. Formato de dado inválido: {e}")
+        except Exception as e:
+            self.erro(f"Ocorreu um erro inesperado ao exibir o extrato: {e}")
+
+    def ok(self, msg: str) -> None:
+        print(f"[OK] {msg}")
+
+    def erro(self, msg: str) -> None:
+        print(f"[ERRO] {msg}")

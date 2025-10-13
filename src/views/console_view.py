@@ -9,15 +9,22 @@ class ConsoleView:
         print("\033[2J\033[H", end="")
 
     def read_command(self) -> Tuple[str, List[str]]:
-        raw = input("\n> ").strip()
-        if not raw:
-            return "", []
-        parts = raw.split()
-        return parts[0].lower(), parts[1:]
+        try:
+            raw = input("\n> ").strip()
+            if not raw:
+                return "", []
+            parts = raw.split()
+            return parts[0].lower(), parts[1:]
+
+        except (KeyboardInterrupt, EOFError):
+            # Se o usuário pressionar Ctrl+C ou Ctrl+D,
+            # o programa não vai mais travar. Em vez disso,
+            # nós interceptamos o erro e retornamos o comando "sair".
+            print("\nSaindo...") 
+            return "sair", []
 
     def render_dashboard(self, dados: Dict[str, object]) -> None:
         print("\n--- Automação de Restaurante ---")
-        # cabeçalho sucinto
         print(f"Mesas: {len(dados.get('mesas', []))}  |  "
               f"Fila: {len(dados.get('fila', []))}  |  "
               f"Garçons: {len(dados.get('garcons', []))}  |  "
@@ -32,7 +39,7 @@ class ConsoleView:
             "  confirmar <mesa_id>",
             "  pronto <mesa_id>",
             "  entregar <mesa_id>",
-            "  finalizar <mesa_id>",
+            "  finalizar <mesa_id> [gorjeta_opcional]",
             "  limpar <mesa_id>",
             "  cardapio",
             "  equipe",
@@ -40,6 +47,8 @@ class ConsoleView:
             "  contratar_cozinheiro <nome> <salario>",
             "  demitir <id_func>",
             "  adicionar_mesa <id> <capacidade>",
-            "  ajuda | help | ?,"
+            "  stats",
+            "  ajuda | help | ?",
+            "  sair" 
             ""
         ]

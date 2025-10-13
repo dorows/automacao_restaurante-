@@ -20,58 +20,58 @@ class FuncionarioController:
         self.contratar_garcom("Beatriz", 1500.0)
         self.contratar_cozinheiro("Ana", 1800.0)
 
-    def contratar_garcom(self, nome: str, salario_base: float) -> Garcom:
-        novo_id = self._gerar_id()
-        novo_garcom = Garcom(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
-        self._funcionarios.append(novo_garcom)
-        return novo_garcom
+    def contratar_garcom(self, nome: str, salario_base: float) -> Tuple[Optional[Garcom], str]:
+        try:
+            novo_id = self._gerar_id()
+            novo_garcom = Garcom(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
+            self._funcionarios.append(novo_garcom)
+            return novo_garcom, f"[OK] Garçom {nome} (ID: {novo_id}) contratado."
+        except (ValueError, TypeError) as e:
+            return None, f"[ERRO] Não foi possível contratar o garçom: {e}"
 
-    def contratar_cozinheiro(self, nome: str, salario_base: float) -> Cozinheiro:
-        novo_id = self._gerar_id()
-        novo_cozinheiro = Cozinheiro(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
-        self._funcionarios.append(novo_cozinheiro)
-        return novo_cozinheiro
+    def contratar_cozinheiro(self, nome: str, salario_base: float) -> Tuple[Optional[Cozinheiro], str]:
+        try:
+            novo_id = self._gerar_id()
+            novo_cozinheiro = Cozinheiro(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
+            self._funcionarios.append(novo_cozinheiro)
+            return novo_cozinheiro, f"[OK] Cozinheiro {nome} (ID: {novo_id}) contratado."
+        except (ValueError, TypeError) as e:
+            return None, f"[ERRO] Não foi possível contratar o cozinheiro: {e}"
+
+    def demitir_funcionario(self, id_funcionario: int) -> Tuple[bool, str]:
+        try:
+            func = self.encontrar_funcionario_por_id(id_funcionario)
+            if not func:
+                raise ValueError(f"Funcionário com ID {id_funcionario} não encontrado.")
+
+            if isinstance(func, Cozinheiro) and func.pedidos_em_preparo:
+                raise ValueError(f"Não é possível demitir o Cozinheiro {func.nome}, pois ele tem pedidos em preparo.")
+            
+            if isinstance(func, Garcom) and func.mesas_atendidas:
+                raise ValueError(f"Não é possível demitir o Garçom {func.nome}, pois ele está atendendo mesas.")
+
+            self._funcionarios.remove(func)
+            return True, f"[OK] Funcionário {func.nome} (ID: {func.id_funcionario}) foi demitido."
+
+        except ValueError as e:
+            return False, f"[ERRO] {e}"
 
     def listar_funcionarios(self) -> List[Funcionario]:
         return self._funcionarios
 
     def encontrar_garcom_disponivel(self) -> Optional[Garcom]:
         garcons = [f for f in self._funcionarios if isinstance(f, Garcom)]
-        if not garcons:
-            return None
+        if not garcons: return None
         
         garcom_livre = min(garcons, key=lambda g: len(g.mesas_atendidas))
-
         if len(garcom_livre.mesas_atendidas) < 4:
             return garcom_livre
         return None
 
     def encontrar_cozinheiro_disponivel(self) -> Optional[Cozinheiro]:
         cozinheiros = [f for f in self._funcionarios if isinstance(f, Cozinheiro)]
-        if not cozinheiros:
-            return None
+        if not cozinheiros: return None
         return min(cozinheiros, key=lambda c: len(c.pedidos_em_preparo))
     
     def encontrar_funcionario_por_id(self, id_funcionario: int) -> Optional[Funcionario]:
         return next((f for f in self._funcionarios if f.id_funcionario == id_funcionario), None)
-
-    def demitir_funcionario(self, id_funcionario: int) -> Tuple[bool, Optional[Funcionario], Optional[str]]:
-        func = self.encontrar_funcionario_por_id(id_funcionario)
-        if not func:
-            return False, None, "func_nao_encontrado"
-
-        # Regras específicas por função
-        if isinstance(func, Cozinheiro):
-            # só demite se não tiver trabalho pendente
-            if func.pedidos_em_preparo:
-                return False, None, "cozinheiro_com_pedidos_em_preparo"
-
-        if isinstance(func, Garcom):
-            # desassocia mesas do garçom e limpa o vínculo na mesa
-            for mesa in list(func.mesas_atendidas):  # .mesas_atendidas já retorna cópia
-                if getattr(mesa, "garcom_responsavel", None) is func:
-                    mesa.garcom_responsavel = None
-                func.remover_mesa(mesa)
-
-        self._funcionarios.remove(func)
-        return True, func, None

@@ -6,9 +6,20 @@ class FuncionarioView:
         if not funcionarios:
             print("Nenhum funcionário cadastrado.")
             return
+        
         for f in funcionarios:
-            print(f"#{f['id']:>2} | {f['papel']:<11} | {f['nome']:<20} | mesas:{f['mesas']}")
-            print("-" * 45)
+            # Constrói a linha base
+            linha = f"#{f['id']:>2} | {f['papel']:<11} | {f['nome']:<20} | mesas:{f['mesas']}"
+            
+            # Se for um garçom, adiciona a informação da gorjeta
+            if f.get('gorjetas') is not None:
+                linha += f" | gorjetas: R$ {f['gorjetas']:.2f}"
 
-    def ok(self, msg: str) -> None: print(f"[OK] {msg}")
-    def erro(self, msg: str) -> None: print(f"[ERRO] {msg}")
+            print(linha)
+            print("-" * (len(linha) if 'gorjetas' in f and f['gorjetas'] is not None else 45))
+
+    def ok(self, msg: str) -> None: 
+        print(f"[OK] {msg}")
+        
+    def erro(self, msg: str) -> None: 
+        print(f"[ERRO] {msg}")
