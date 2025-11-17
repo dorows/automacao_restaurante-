@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from models.mesa import Mesa
 from models.grupo_cliente import GrupoCliente
 from models.garcom import Garcom
@@ -90,3 +90,15 @@ class MesaController:
             return nova, f"Mesa {id_mesa} cadastrada com sucesso."
         except (ValueError, TypeError) as e:
             return None, str(e)
+
+    def mesa_para_dict(self, mesa: Mesa) -> Dict[str, object]:
+        garcom = getattr(mesa, "garcom_responsavel", None)
+        return {
+            "id": mesa.id_mesa,
+            "cap": mesa.capacidade,
+            "status": mesa.status.name if hasattr(mesa.status, "name") else str(mesa.status),
+            "garcom": garcom.nome if garcom else None,
+        }
+
+    def listar_mesas_para_view(self) -> List[Dict[str, object]]:
+        return [self.mesa_para_dict(m) for m in self._mesas]

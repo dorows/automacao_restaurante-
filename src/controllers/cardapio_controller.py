@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Dict
 from models.cardapio import Cardapio
 from models.prato import Prato
 
@@ -6,6 +6,10 @@ class CardapioController:
     def __init__(self):
         self._cardapio = Cardapio()
         self._setup_inicial()
+
+    @property
+    def cardapio(self) -> Cardapio:
+        return self._cardapio
 
     def _setup_inicial(self):
         pratos_iniciais = [
@@ -36,8 +40,6 @@ class CardapioController:
             except (ValueError, TypeError) as e:
                 print(f"[AVISO DE INICIALIZAÇÃO] Não foi possível adicionar o prato '{nome_p}': {e}")
 
-
-
     def adicionar_novo_prato(self, id_prato: int, nome: str, preco: float, descricao: str) -> Tuple[bool, str]:
         try:
             novo_prato = Prato(id_prato, nome, preco, descricao)
@@ -47,10 +49,15 @@ class CardapioController:
         except (ValueError, TypeError) as e:
             return False, str(e)
 
-
     def buscar_prato_por_id(self, id_prato: int) -> Optional[Prato]:
         return self._cardapio.buscar_prato_por_id(id_prato)
 
-    @property
-    def cardapio(self) -> Cardapio:
-        return self._cardapio
+    def listar_pratos_para_view(self) -> List[Dict[str, object]]:
+        out: List[Dict[str, object]] = []
+        for p in self._cardapio.pratos:
+            out.append({
+                "id": p.id_prato,
+                "nome": p.nome,
+                "preco": p.preco,
+            })
+        return out

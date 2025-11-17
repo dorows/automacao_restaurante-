@@ -99,7 +99,7 @@ class PedidoController:
             ped = self._find_pedido_by_status(conta, StatusPedido.ABERTO)
             if ped:
                 self.pedido_v.exibir_pedido(self._pedido_dict(ped))
-            self.conta_v.exibir_extrato(self._conta_dict(conta))
+            self.conta_v.exibir_extrato(self.conta_para_view(conta))
 
         except (ValueError, TypeError) as e:
             self.console.print_lines([f"[ERRO] {e}"])
@@ -166,3 +166,24 @@ class PedidoController:
             for item in pedido.itens:
                 contagem_pratos[item.prato] += item.quantidade
         return contagem_pratos
+    
+    def conta_para_view(self, conta: Conta) -> dict:
+        itens = []
+        for ped in conta.pedidos:
+            linhas = [
+                f"{it.quantidade}x {it.prato.nome} - R$ {it.calcular_subtotal():.2f}"
+                for it in ped.itens
+            ]
+            itens.append({
+                "pedido_id": ped.id_pedido,
+                "status": ped.status.name if hasattr(ped.status, "name") else str(ped.status),
+                "linhas": linhas,
+            })
+
+        return {
+            "id_conta": conta.id_conta,
+            "mesa_id": conta.mesa.id_mesa,
+            "cliente": f"Grupo {conta.grupo_cliente.id_grupo}",
+            "itens": itens,
+            "total": conta.calcular_total(),
+        }

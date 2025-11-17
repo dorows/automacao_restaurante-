@@ -1,10 +1,9 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from models.funcionario import Funcionario
 from models.garcom import Garcom
 from models.cozinheiro import Cozinheiro
 
 class FuncionarioController:
-
     def __init__(self):
         self._funcionarios: List[Funcionario] = []
         self._proximo_id = 101 
@@ -95,3 +94,14 @@ class FuncionarioController:
             return True, f"[OK] Salário atualizado para R$ {func.salario_base:.2f} (ID {func.id_funcionario})."
         except (ValueError, TypeError) as e:
             return False, f"[ERRO] {e}"
+    
+    def listar_garcons_para_view(self) -> List[Dict[str, object]]:
+        out: List[Dict[str, object]] = []
+        for f in self._funcionarios:
+            if isinstance(f, Garcom):
+                out.append({
+                    "id": f.id_funcionario,
+                    "nome": f.nome,
+                    "mesas": len(f.mesas_atendidas),
+                })
+        return out
