@@ -57,58 +57,15 @@ class RestauranteController:
         self._cardapio = cardapio_controller
         self._cliente = cliente_controller
 
-    def _mesa_dict(self, m: Mesa) -> Dict[str, object]:
-        return {
-            "id": m.id_mesa,
-            "cap": m.capacidade,
-            "status": m.status.name if hasattr(m.status, "name") else str(m.status),
-            "garcom": m.garcom_responsavel.nome if getattr(m, "garcom_responsavel", None) else None
-        }
-
-    def _fila_list(self) -> List[Dict[str, object]]:
-        out: List[Dict[str, object]] = []
-        for i, g in enumerate(self._fila.listar(), start=1):
-            out.append({"pos": i, "nome": f"Grupo {g.id_grupo}", "pessoas": g.numero_pessoas})
-        return out
-
-    def _garcons_list(self) -> List[Dict[str, object]]:
-        out: List[Dict[str, object]] = []
-        for f in self._func.listar_funcionarios():
-            if isinstance(f, Garcom):
-                out.append({"id": f.id_funcionario, "nome": f.nome, "mesas": len(f.mesas_atendidas)})
-        return out
-
-    def _cardapio_list(self) -> List[Dict[str, object]]:
-        out: List[Dict[str, object]] = []
-        for p in self._cardapio.cardapio.pratos:
-            out.append({"id": p.id_prato, "nome": p.nome, "preco": p.preco})
-        return out
-
-    def _conta_dict(self, conta: Conta) -> Dict[str, object]:
-        itens = []
-        for ped in conta.pedidos:
-            linhas = [f"{it.quantidade}x {it.prato.nome} - R$ {(it.quantidade * it.prato.preco):.2f}" for it in ped.itens]
-            itens.append({
-                "pedido_id": ped.id_pedido,
-                "status": ped.status.name if hasattr(ped.status, "name") else str(ped.status),
-                "linhas": linhas
-            })
-        return {
-            "id_conta": conta.id_conta,
-            "mesa_id": conta.mesa.id_mesa,
-            "cliente": f"Grupo {conta.grupo_cliente.id_grupo}",
-            "itens": itens,
-            "total": conta.calcular_total()
-        }
     def get_cardapio_data(self) -> List[Dict[str, object]]:
-        return self._cardapio_list()
-
+        return self._cardapio.listar_pratos_para_view()
+    
     def print_dashboard(self) -> None:
         dados = {
-            "mesas": [self._mesa_dict(m) for m in self._mesa.listar_mesas()],
-            "fila": self._fila_list(),
-            "garcons": self._garcons_list(),
-            "cardapio": self._cardapio_list(),
+            "mesas": self._mesa.listar_mesas_para_view(),
+            "fila": self._fila.listar_para_view(),
+            "garcons": self._func.listar_garcons_para_view(),   
+            "cardapio": self._cardapio.listar_pratos_para_view()
         }
         self.console.render_dashboard(dados)
         self.mesa_v.exibir_mesas(dados["mesas"])
@@ -148,7 +105,7 @@ class RestauranteController:
                 msgs.append(f"[ALOCADO] Grupo {grupo.id_grupo} ({grupo.numero_pessoas}) -> Mesa {mesa.id_mesa} "
                             f"(Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}")
 
-                self.conta_v.exibir_extrato(self._conta_dict(conta))
+                self.conta_v.exibir_extrato(self._pedido.conta_para_view(conta))
 
             if msgs:
                 self.console.print_lines(msgs)
@@ -202,7 +159,7 @@ class RestauranteController:
                 except (ValueError, TypeError) as e:
                     self.console.print_lines([f"[AVISO] Não foi possível registrar a gorjeta: {e}"])
             total = conta.calcular_total()
-            extrato_data = self._conta_dict(conta)
+            extrato_data = self._pedido.conta_para_view(conta)
 
             sucesso_conta, msg_conta = self._conta.fechar_conta(conta)
             if not sucesso_conta:
@@ -282,6 +239,7 @@ class RestauranteController:
         if mesa_criada:
             self.mesa_v.exibir_mesas([self._mesa_dict(m) for m in self._mesa.listar_mesas()])
             self.auto_alocar_e_printar(greedy=False)
+
     def ver_prato_mais_pedido_e_printar(self) -> None:
 
         try:
