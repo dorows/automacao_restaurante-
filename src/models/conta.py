@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
-
+from models.excecoes import ContaJaFechadaError
 if TYPE_CHECKING:
     from .grupo_cliente import GrupoCliente
     from .pedido import Pedido
@@ -41,7 +41,7 @@ class Conta:
         if not isinstance(pedido, Pedido):
             raise TypeError("Apenas objetos da classe Pedido podem ser adicionados à conta.")
         if not self.esta_aberta:
-            raise ValueError(f"Não é possível adicionar pedidos à conta {self.id_conta}, pois ela está fechada.")
+            raise ContaJaFechadaError(f"Não é possível adicionar pedidos à conta {self.id_conta}, pois ela está fechada.")
         
         self._pedidos.append(pedido)
 
@@ -50,5 +50,5 @@ class Conta:
 
     def fechar(self) -> None:
         if not self.esta_aberta:
-            raise ValueError(f"A conta {self.id_conta} já se encontra fechada.")
+            raise ContaJaFechadaError(f"A conta {self.id_conta} já se encontra fechada.")
         self._aberta = False

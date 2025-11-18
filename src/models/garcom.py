@@ -4,6 +4,7 @@ from typing import List, TYPE_CHECKING
 if TYPE_CHECKING:
     from .mesa import Mesa
 from .funcionario import Funcionario
+from models.excecoes import GarcomNoLimiteError
 
 class Garcom(Funcionario):
     def __init__(self, id_funcionario: int, nome: str, salario_base: float):
@@ -31,7 +32,7 @@ class Garcom(Funcionario):
             raise TypeError("Apenas objetos da classe Mesa podem ser adicionados.")
         
         if len(self._mesas_atendidas) >= 4:
-            raise ValueError(f"O Garçom {self.nome} já atingiu o limite de 4 mesas.")
+            raise GarcomNoLimiteError(f"O Garçom {self.nome} já atingiu o limite de 4 mesas.")
             
         if mesa in self._mesas_atendidas:
             raise ValueError(f"O Garçom {self.nome} já está atendendo a Mesa {mesa.id_mesa}.")

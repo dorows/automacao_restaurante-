@@ -86,11 +86,9 @@ class PedidoController:
         ped = self._find_pedido_by_status(conta, StatusPedido.ABERTO)
         if not ped:
             raise ValueError("Nenhum pedido ABERTO para confirmar nesta mesa.")
-        
-        ped.confirmar()
-        ped.iniciar_preparo()
-        
+        ped.confirmar() 
         return ped 
+    
 
     def marcar_pedido_pronto(self, mesa_id: int) -> Pedido:
         conta = self._contas.encontrar_conta_por_mesa(mesa_id)

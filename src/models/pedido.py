@@ -3,11 +3,13 @@ from typing import List, TYPE_CHECKING
 from datetime import datetime
 from .item_pedido import ItemPedido
 from .status_enums import StatusPedido
+from models.excecoes import StatusPedidoInvalidoError
 
 if TYPE_CHECKING:
     from .mesa import Mesa
     from .garcom import Garcom
     from .grupo_cliente import GrupoCliente
+
 
 class Pedido:
     _proximo_id = 1
@@ -47,7 +49,7 @@ class Pedido:
         if not isinstance(item, ItemPedido):
             raise TypeError("Apenas um objeto ItemPedido pode ser adicionado.")
         if self.status != StatusPedido.ABERTO:
-            raise ValueError(f"Não é possível adicionar itens ao Pedido {self.id_pedido}, pois seu status é '{self.status.value}'.")
+            raise StatusPedidoInvalidoError(f"Não é possível adicionar itens ao Pedido {self.id_pedido}, pois seu status é '{self.status.value}'.")
         self._itens.append(item)
 
     def calcular_subtotal_pedido(self) -> float:
@@ -55,24 +57,24 @@ class Pedido:
 
     def confirmar(self) -> None:
         if self.status != StatusPedido.ABERTO:
-            raise ValueError(f"Apenas um pedido 'Aberto' pode ser confirmado (status atual: '{self.status.value}').")
+            raise StatusPedidoInvalidoError(f"Apenas um pedido 'Aberto' pode ser confirmado (status atual: '{self.status.value}').")
         if not self.itens:
             raise ValueError("Não é possível confirmar um pedido vazio.")
         self._status = StatusPedido.CONFIRMADO
 
     def iniciar_preparo(self) -> None:
         if self.status != StatusPedido.CONFIRMADO:
-            raise ValueError(f"Apenas um pedido 'Confirmado' pode iniciar o preparo (status atual: '{self.status.value}').")
+            raise StatusPedidoInvalidoError(f"Apenas um pedido 'Confirmado' pode iniciar o preparo (status atual: '{self.status.value}').")
         self._status = StatusPedido.EM_PREPARO
 
     def finalizar_preparo(self) -> None:
         if self.status != StatusPedido.EM_PREPARO:
-            raise ValueError(f"Apenas um pedido 'Em Preparo' pode ser finalizado (status atual: '{self.status.value}').")
+            raise StatusPedidoInvalidoError(f"Apenas um pedido 'Em Preparo' pode ser finalizado (status atual: '{self.status.value}').")
         self._status = StatusPedido.PRONTO
 
     def entregar_pedido(self) -> None:
         if self.status != StatusPedido.PRONTO:
-            raise ValueError(f"Apenas um pedido 'Pronto' pode ser entregue (status atual: '{self.status.value}').")
+            raise StatusPedidoInvalidoError(f"Apenas um pedido 'Pronto' pode ser entregue (status atual: '{self.status.value}').")
         self._status = StatusPedido.ENTREGUE
 
     def __str__(self) -> str:

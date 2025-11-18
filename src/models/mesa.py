@@ -5,6 +5,7 @@ from .grupo_cliente import GrupoCliente
 from .conta import Conta
 if TYPE_CHECKING:
     from .garcom import Garcom
+from models.excecoes import StatusMesaInvalidoError, GrupoNaoCabeNaMesaError
 
 class Mesa:
     def __init__(self, id_mesa: int, capacidade: int):
@@ -51,9 +52,9 @@ class Mesa:
         if not isinstance(grupo, GrupoCliente):
             raise TypeError("Apenas um objeto GrupoCliente pode ocupar uma mesa.")
         if self.status != StatusMesa.LIVRE:
-            raise ValueError(f"Mesa {self.id_mesa} não está livre (status atual: {self.status.value}).")
+            raise StatusMesaInvalidoError(f"Mesa {self.id_mesa} não está livre (status atual: {self.status.value}).")
         if grupo.numero_pessoas > self.capacidade:
-            raise ValueError(f"O grupo ({grupo.numero_pessoas} pessoas) não cabe na Mesa {self.id_mesa} (capacidade: {self.capacidade}).")
+            raise GrupoNaoCabeNaMesaError(f"O grupo ({grupo.numero_pessoas} pessoas) não cabe na Mesa {self.id_mesa} (capacidade: {self.capacidade}).")
         
         self._status = StatusMesa.OCUPADA
         self._grupo_cliente = grupo
@@ -61,7 +62,7 @@ class Mesa:
 
     def liberar(self) -> None:
         if self.status != StatusMesa.OCUPADA:
-            raise ValueError(f"Apenas uma mesa ocupada pode ser liberada (status atual: {self.status.value}).")
+            raise StatusMesaInvalidoError(f"Apenas uma mesa ocupada pode ser liberada (status atual: {self.status.value}).")
         
         if self._grupo_cliente:
             self._grupo_cliente.sair()
@@ -70,7 +71,7 @@ class Mesa:
 
     def limpar(self) -> None:
         if self.status != StatusMesa.SUJA:
-            raise ValueError(f"Apenas uma mesa suja pode ser limpa (status atual: {self.status.value}).")
+            raise StatusMesaInvalidoError(f"Apenas uma mesa suja pode ser limpa (status atual: {self.status.value}).")
         
         self._status = StatusMesa.LIVRE
         self.conta = None

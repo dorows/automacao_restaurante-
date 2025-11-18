@@ -67,16 +67,12 @@ class AppController:
             elif acao == "confirmar":
                 if len(args) != 1: raise ValueError("requer 1 argumento: <mesa_id>")
                 mesa_id = int(args[0])
-                pedido_confirmado = self.pedidos.confirmar_pedido(mesa_id)
-                self.pedido_v.exibir_pedido(self.pedidos.pedido_para_view(pedido_confirmado))
-                self.console.print_lines([f"[OK] Pedido #{pedido_confirmado.id_pedido} confirmado e em preparo."])
+                self.restaurante.confirmar_pedido_e_alocar_cozinheiro(mesa_id)
 
             elif acao == "pronto":
                 if len(args) != 1: raise ValueError("requer 1 argumento: <mesa_id>")
                 mesa_id = int(args[0])
-                pedido_pronto = self.pedidos.marcar_pedido_pronto(mesa_id)
-                self.pedido_v.exibir_pedido(self.pedidos.pedido_para_view(pedido_pronto))
-                self.console.print_lines([f"[OK] Pedido #{pedido_pronto.id_pedido} está PRONTO."])
+                self.restaurante.marcar_pedido_pronto_e_printar(mesa_id)
 
             elif acao == "entregar":
                 if len(args) != 1: raise ValueError("requer 1 argumento: <mesa_id>")

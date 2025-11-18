@@ -18,27 +18,23 @@ class Cozinheiro(Funcionario):
             raise TypeError("Apenas objetos da classe Pedido podem ser preparados.")
         
         if pedido in self._pedidos_em_preparo:
-            raise ValueError(f"O Cozinheiro {self.__nome} já está preparando o Pedido {pedido.id_pedido}.")
+            raise ValueError(f"O Cozinheiro {self.nome} já está preparando o Pedido {pedido.id_pedido}.")
 
-        if pedido.iniciar_preparo():
-            self._pedidos_em_preparo.append(pedido)
-        else:
-            raise ValueError(f"Não foi possível iniciar o preparo do Pedido {pedido.id_pedido} (status atual: {pedido.status.value}).")
+        pedido.iniciar_preparo()
+        self._pedidos_em_preparo.append(pedido)
 
     def finalizar_preparo_pedido(self, pedido: Pedido) -> None: 
         if not isinstance(pedido, Pedido):
             raise TypeError("Apenas objetos da classe Pedido podem ser finalizados.")
 
         if pedido not in self._pedidos_em_preparo:
-            raise ValueError(f"O Cozinheiro {self.__nome} não está preparando o Pedido {pedido.id_pedido}.")
+            raise ValueError(f"O Cozinheiro {self.nome} não está preparando o Pedido {pedido.id_pedido}.")
 
-        if pedido.finalizar_preparo():
-            self._pedidos_em_preparo.remove(pedido)
-        else:
-            raise ValueError(f"Não foi possível finalizar o preparo do Pedido {pedido.id_pedido} (status atual: {pedido.status.value}).")
+        pedido.finalizar_preparo()
+        self._pedidos_em_preparo.remove(pedido)
 
     def calcular_pagamento(self) -> float: 
-        return self.__salario_base
+        return self.salario_base
     
     def exibir_dados(self) -> str: 
         info_base = super().exibir_dados()

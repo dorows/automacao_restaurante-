@@ -186,6 +186,64 @@ class RestauranteController:
 
         except (ValueError, TypeError, RuntimeError) as e:
             self.console.print_lines([f"[ERRO] {e}"])
+    def confirmar_pedido_e_alocar_cozinheiro(self, mesa_id: int) -> None:
+        try:
+            pedido = self._pedido_controller.confirmar_pedido(mesa_id)
+
+            cozinheiro = self._func.encontrar_cozinheiro_disponivel()
+            
+            if cozinheiro:
+                cozinheiro.iniciar_preparo_pedido(pedido)
+                msg_coz = f"Assumido por Cozinheiro {cozinheiro.nome}"
+            else:
+                msg_coz = "Nenhum cozinheiro disponível! Pedido aguardando na fila da cozinha."
+
+            self.pedido_v.exibir_pedido(self._pedido_controller.pedido_para_view(pedido))
+            self.console.print_lines([f"[OK] Pedido #{pedido.id_pedido} enviado para cozinha. {msg_coz}"])
+
+        except (ValueError, TypeError) as e:
+            self.console.print_lines([f"[ERRO] {e}"])
+            
+    def marcar_pedido_pronto_e_printar(self, mesa_id: int) -> None:
+        try:
+            # Precisamos encontrar quem é o cozinheiro responsável por esse pedido
+            # Como não temos link direto Pedido -> Cozinheiro, buscamos na lista de cozinheiros
+            
+            # 1. Localiza o pedido que deveria estar EM_PREPARO
+            conta = self._conta.encontrar_conta_por_mesa(mesa_id)
+            if not conta: raise ValueError("Mesa sem conta.")
+            
+            pedido_alvo = None
+            for p in conta.pedidos:
+                if p.status.name == "EM_PREPARO": # Usando name do Enum ou value
+                    pedido_alvo = p
+                    break
+            
+            if not pedido_alvo:
+                raise ValueError("Nenhum pedido 'Em Preparo' encontrado nesta mesa.")
+
+            # 2. Procura qual cozinheiro tem esse pedido na lista
+            cozinheiro_resp = None
+            for func in self._func.listar_funcionarios():
+                # Checa se é cozinheiro e se o pedido está na lista dele
+                if hasattr(func, "pedidos_em_preparo") and pedido_alvo in func.pedidos_em_preparo:
+                    cozinheiro_resp = func
+                    break
+            
+            if not cozinheiro_resp:
+                # Fallback caso o estado esteja inconsistente (ex: mudou status manualmente)
+                pedido_alvo.finalizar_preparo()
+                msg = "Pedido finalizado (sem cozinheiro vinculado)."
+            else:
+                # O jeito CERTO: O cozinheiro finaliza
+                cozinheiro_resp.finalizar_preparo_pedido(pedido_alvo)
+                msg = f"Cozinheiro {cozinheiro_resp.nome} finalizou o prato."
+
+            self.pedido_v.exibir_pedido(self._pedido_controller.pedido_para_view(pedido_alvo))
+            self.console.print_lines([f"[OK] {msg}"])
+
+        except (ValueError, TypeError) as e:
+            self.console.print_lines([f"[ERRO] {e}"])
 
     def limpar_mesa_e_printar(self, mesa_id: int) -> None:
             try:
