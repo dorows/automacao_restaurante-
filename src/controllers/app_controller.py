@@ -61,22 +61,29 @@ class AppController:
             elif acao == "pedir":
                 if len(args) != 3: raise ValueError("requer 3 argumentos: <mesa_id> <prato_id> <qtd>")
                 mesa_id, prato_id, qtd = map(int, args)
-                self.pedidos.realizar_pedido_e_printar(mesa_id, prato_id, qtd)
+                conta_atualizada = self.pedidos.realizar_pedido(mesa_id, prato_id, qtd)
+                self.conta_v.exibir_extrato(self.pedidos.conta_para_view(conta_atualizada))
 
             elif acao == "confirmar":
                 if len(args) != 1: raise ValueError("requer 1 argumento: <mesa_id>")
                 mesa_id = int(args[0])
-                self.pedidos.confirmar_e_printar(mesa_id)
+                pedido_confirmado = self.pedidos.confirmar_pedido(mesa_id)
+                self.pedido_v.exibir_pedido(self.pedidos.pedido_para_view(pedido_confirmado))
+                self.console.print_lines([f"[OK] Pedido #{pedido_confirmado.id_pedido} confirmado e em preparo."])
 
             elif acao == "pronto":
                 if len(args) != 1: raise ValueError("requer 1 argumento: <mesa_id>")
                 mesa_id = int(args[0])
-                self.pedidos.pronto_e_printar(mesa_id)
+                pedido_pronto = self.pedidos.marcar_pedido_pronto(mesa_id)
+                self.pedido_v.exibir_pedido(self.pedidos.pedido_para_view(pedido_pronto))
+                self.console.print_lines([f"[OK] Pedido #{pedido_pronto.id_pedido} está PRONTO."])
 
             elif acao == "entregar":
                 if len(args) != 1: raise ValueError("requer 1 argumento: <mesa_id>")
                 mesa_id = int(args[0])
-                self.pedidos.entregar_e_printar(mesa_id)
+                pedido_entregue = self.pedidos.entregar_pedido(mesa_id)
+                self.pedido_v.exibir_pedido(self.pedidos.pedido_para_view(pedido_entregue))
+                self.console.print_lines([f"[OK] Pedido #{pedido_entregue.id_pedido} ENTREGUE."])
 
             elif acao == "finalizar":
                 if len(args) < 1:
@@ -131,7 +138,7 @@ class AppController:
                 if len(args) < 2:
                     raise ValueError("uso: renomear <id_func> <novo_nome>")
                 id_func = int(args[0])
-                novo_nome = " ".join(args[1:])  # aceita nomes com espaço
+                novo_nome = " ".join(args[1:])  
                 self.restaurante.renomear_funcionario_e_printar(id_func, novo_nome)
 
             elif acao == "salario":

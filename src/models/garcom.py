@@ -1,3 +1,4 @@
+# models/garcom.py
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 if TYPE_CHECKING:
@@ -13,6 +14,10 @@ class Garcom(Funcionario):
     @property
     def mesas_atendidas(self) -> List[Mesa]:
         return self._mesas_atendidas.copy()
+    
+    @property
+    def gorjetas(self) -> float:
+        return self._gorjetas
 
     def adicionar_gorjeta(self, valor: float) -> None:
         if not isinstance(valor, (int, float)) or valor < 0:
@@ -26,10 +31,10 @@ class Garcom(Funcionario):
             raise TypeError("Apenas objetos da classe Mesa podem ser adicionados.")
         
         if len(self._mesas_atendidas) >= 4:
-            raise ValueError(f"O Garçom {self.__nome} já atingiu o limite de 4 mesas.")
+            raise ValueError(f"O Garçom {self.nome} já atingiu o limite de 4 mesas.")
             
         if mesa in self._mesas_atendidas:
-            raise ValueError(f"O Garçom {self.__nome} já está atendendo a Mesa {mesa.id_mesa}.")
+            raise ValueError(f"O Garçom {self.nome} já está atendendo a Mesa {mesa.id_mesa}.")
 
         self._mesas_atendidas.append(mesa)
 
@@ -40,12 +45,12 @@ class Garcom(Funcionario):
             raise TypeError("Apenas objetos da classe Mesa podem ser removidos.")
 
         if mesa not in self._mesas_atendidas:
-            raise ValueError(f"O Garçom {self.__nome} não está atendendo a Mesa {mesa.id_mesa}.")
+            raise ValueError(f"O Garçom {self.nome} não está atendendo a Mesa {mesa.id_mesa}.")
             
         self._mesas_atendidas.remove(mesa)
 
     def calcular_pagamento(self) -> float:
-        return self.__salario_base + self._gorjetas
+        return self.salario_base + self._gorjetas
 
     def exibir_dados(self) -> str:
         info_base = super().exibir_dados()

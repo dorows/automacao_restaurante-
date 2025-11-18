@@ -15,45 +15,41 @@ class FuncionarioController:
         return id_gerado
 
     def _setup_inicial(self):
-        self.contratar_garcom("Carlos", 1500.0)
-        self.contratar_garcom("Beatriz", 1500.0)
-        self.contratar_cozinheiro("Ana", 1800.0)
-
-    def contratar_garcom(self, nome: str, salario_base: float) -> Tuple[Optional[Garcom], str]:
         try:
-            novo_id = self._gerar_id()
-            novo_garcom = Garcom(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
-            self._funcionarios.append(novo_garcom)
-            return novo_garcom, f"[OK] Garçom {nome} (ID: {novo_id}) contratado."
+            self.contratar_garcom("Carlos", 1500.0)
+            self.contratar_garcom("Beatriz", 1500.0)
+            self.contratar_cozinheiro("Ana", 1800.0)
         except (ValueError, TypeError) as e:
-            return None, f"[ERRO] Não foi possível contratar o garçom: {e}"
+            print(f"[SETUP INICIAL ERRO] {e}")
 
-    def contratar_cozinheiro(self, nome: str, salario_base: float) -> Tuple[Optional[Cozinheiro], str]:
-        try:
-            novo_id = self._gerar_id()
-            novo_cozinheiro = Cozinheiro(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
-            self._funcionarios.append(novo_cozinheiro)
-            return novo_cozinheiro, f"[OK] Cozinheiro {nome} (ID: {novo_id}) contratado."
-        except (ValueError, TypeError) as e:
-            return None, f"[ERRO] Não foi possível contratar o cozinheiro: {e}"
 
-    def demitir_funcionario(self, id_funcionario: int) -> Tuple[bool, str]:
-        try:
-            func = self.encontrar_funcionario_por_id(id_funcionario)
-            if not func:
-                raise ValueError(f"Funcionário com ID {id_funcionario} não encontrado.")
 
-            if isinstance(func, Cozinheiro) and func.pedidos_em_preparo:
-                raise ValueError(f"Não é possível demitir o Cozinheiro {func.nome}, pois ele tem pedidos em preparo.")
-            
-            if isinstance(func, Garcom) and func.mesas_atendidas:
-                raise ValueError(f"Não é possível demitir o Garçom {func.nome}, pois ele está atendendo mesas.")
+    def contratar_garcom(self, nome: str, salario_base: float) -> Garcom:
+        novo_id = self._gerar_id()
+        novo_garcom = Garcom(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
+        self._funcionarios.append(novo_garcom)
+        return novo_garcom # Retorna o objeto criado
 
-            self._funcionarios.remove(func)
-            return True, f"[OK] Funcionário {func.nome} (ID: {func.id_funcionario}) foi demitido."
+    def contratar_cozinheiro(self, nome: str, salario_base: float) -> Cozinheiro:
+        novo_id = self._gerar_id()
+        novo_cozinheiro = Cozinheiro(id_funcionario=novo_id, nome=nome, salario_base=salario_base)
+        self._funcionarios.append(novo_cozinheiro)
+        return novo_cozinheiro # Retorna o objeto criado
 
-        except ValueError as e:
-            return False, f"[ERRO] {e}"
+
+    def demitir_funcionario(self, id_funcionario: int) -> Funcionario:
+        func = self.encontrar_funcionario_por_id(id_funcionario)
+        if not func:
+            raise ValueError(f"Funcionário com ID {id_funcionario} não encontrado.")
+
+        if isinstance(func, Cozinheiro) and func.pedidos_em_preparo:
+            raise ValueError(f"Não é possível demitir o Cozinheiro {func.nome}, pois ele tem pedidos em preparo.")
+        
+        if isinstance(func, Garcom) and func.mesas_atendidas:
+            raise ValueError(f"Não é possível demitir o Garçom {func.nome}, pois ele está atendendo mesas.")
+
+        self._funcionarios.remove(func)
+        return func # Retorna o objeto removido
 
     def listar_funcionarios(self) -> List[Funcionario]:
         return self._funcionarios
@@ -75,26 +71,22 @@ class FuncionarioController:
     def encontrar_funcionario_por_id(self, id_funcionario: int) -> Optional[Funcionario]:
         return next((f for f in self._funcionarios if f.id_funcionario == id_funcionario), None)
 
-    def atualizar_nome(self, id_funcionario: int, novo_nome: str) -> tuple[bool, str]:
-        try:
-            func = self.encontrar_funcionario_por_id(id_funcionario)
-            if not func:
-                return False, f"Funcionário com ID {id_funcionario} não encontrado."
-            func.nome = novo_nome  # usa o setter do model (valida vazio, normaliza etc.)
-            return True, f"[OK] Nome atualizado para '{func.nome}' (ID {func.id_funcionario})."
-        except (ValueError, TypeError) as e:
-            return False, f"[ERRO] {e}"
+    def atualizar_nome(self, id_funcionario: int, novo_nome: str) -> Funcionario:
+        func = self.encontrar_funcionario_por_id(id_funcionario)
+        if not func:
+            raise ValueError(f"Funcionário com ID {id_funcionario} não encontrado.")
 
-    def atualizar_salario(self, id_funcionario: int, novo_salario: float) -> tuple[bool, str]:
-        try:
-            func = self.encontrar_funcionario_por_id(id_funcionario)
-            if not func:
-                return False, f"Funcionário com ID {id_funcionario} não encontrado."
-            func.salario_base = float(novo_salario)  # usa o setter do model (valida negativo etc.)
-            return True, f"[OK] Salário atualizado para R$ {func.salario_base:.2f} (ID {func.id_funcionario})."
-        except (ValueError, TypeError) as e:
-            return False, f"[ERRO] {e}"
+        func.nome = novo_nome
+        return func
+
+    def atualizar_salario(self, id_funcionario: int, novo_salario: float) -> Funcionario:
+        func = self.encontrar_funcionario_por_id(id_funcionario)
+        if not func:
+            raise ValueError(f"Funcionário com ID {id_funcionario} não encontrado.")
+        func.salario_base = float(novo_salario)
+        return func
     
+
     def listar_garcons_para_view(self) -> List[Dict[str, object]]:
         out: List[Dict[str, object]] = []
         for f in self._funcionarios:

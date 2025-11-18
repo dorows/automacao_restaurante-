@@ -5,8 +5,8 @@ class Funcionario(ABC):
         if not isinstance(id_funcionario, int) or id_funcionario <= 0:
             raise ValueError("O ID do funcionário deve ser um número inteiro positivo.")
         self.__id_funcionario = id_funcionario
-        self.__nome = nome
-        self.__salario_base = salario_base
+        self.nome = nome
+        self.salario_base = salario_base
     
     @property
     def id_funcionario(self) -> int:

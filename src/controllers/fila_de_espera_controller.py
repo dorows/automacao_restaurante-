@@ -10,31 +10,23 @@ class FilaController:
     def fila(self) -> FilaDeEspera: 
         return self._fila_de_espera
 
-    def adicionar_grupo(self, grupo: GrupoCliente) -> Tuple[bool, str]:
-        try:
-            self._fila_de_espera.adicionar_grupo(grupo)
-            return True, f"Grupo {grupo.id_grupo} adicionado à fila."
-        except (ValueError, TypeError) as e:
-            return False, str(e)
+    def adicionar_grupo(self, grupo: GrupoCliente) -> None:
+        self._fila_de_espera.adicionar_grupo(grupo)
 
     def chamar_proximo_grupo(self, capacidade_disponivel: int) -> Optional[GrupoCliente]:
         try:
             return self._fila_de_espera.chamar_proximo_grupo(capacidade_disponivel)
         except ValueError as e:
-            print(f"[ERRO no FilaController] {e}")
+            print(f"[ERRO no FilaController] {e}") 
             return None
 
-    def remover(self, grupo: GrupoCliente) -> Tuple[bool, str]:
-        try:
-            self._fila_de_espera.remover(grupo)
-            return True, f"Grupo {grupo.id_grupo} removido da fila."
-        except (ValueError, TypeError) as e:
-            return False, str(e)
+    def remover(self, grupo: GrupoCliente) -> None:
+        self._fila_de_espera.remover(grupo)
 
     def esta_vazia(self) -> bool:
         return len(self._fila_de_espera) == 0
     
-    def listar(self):
+    def listar(self) -> List[GrupoCliente]:
         return self._fila_de_espera.to_list()
     
     def listar_para_view(self) -> List[Dict[str, object]]:

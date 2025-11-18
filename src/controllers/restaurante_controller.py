@@ -84,28 +84,34 @@ class RestauranteController:
                     else:
                         continue
 
-                garcom = self._func.encontrar_garcom_disponivel()
-                sucesso_designacao, msg_designacao = self._mesa.designar_garcom(mesa, garcom)
-                if not sucesso_designacao:
-                    garcom = None
-                    self.console.print_lines([f"[AVISO] {msg_designacao}"])
-
-                sucesso_ocupar, msg_ocupar = self._mesa.ocupar_mesa(mesa.id_mesa, grupo)
-                if not sucesso_ocupar:
+                # Tenta designar um garçom (não bloqueante se falhar)
+                garcom = None
+                try:
+                    garcom = self._func.encontrar_garcom_disponivel()
+                    if garcom:
+                        self._mesa.designar_garcom(mesa, garcom)
+                except (ValueError, TypeError) as e_garcom:
+                    self.console.print_lines([f"[AVISO] {e_garcom}"])
+                    garcom = None 
+                
+                conta = None
+                try:
+                    self._mesa.ocupar_mesa(mesa.id_mesa, grupo)
+                    conta = self._conta.abrir_nova_conta(grupo, mesa)
+                except (ValueError, TypeError) as e_alocar:
+                    self.console.print_lines([f"[AVISO] Falha ao auto-alocar Grupo {grupo.id_grupo}: {e_alocar}"])
                     if not greedy:
                         break
                     else:
                         continue
-                conta, msg_conta = self._conta.abrir_nova_conta(grupo, mesa)
-                if not conta:
-                    self.console.print_lines([f"[AVISO] Falha ao auto-alocar: {msg_conta}"])
-                    continue
+                
+                # Se deu certo, remove da fila e registra
                 self._fila.remover(grupo)
                 
                 msgs.append(f"[ALOCADO] Grupo {grupo.id_grupo} ({grupo.numero_pessoas}) -> Mesa {mesa.id_mesa} "
                             f"(Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}")
 
-                self.conta_v.exibir_extrato(self._pedido.conta_para_view(conta))
+                self.conta_v.exibir_extrato(self._pedido_controller.conta_para_view(conta))
 
             if msgs:
                 self.console.print_lines(msgs)
@@ -114,43 +120,47 @@ class RestauranteController:
 
     def receber_clientes_e_printar(self, qtd: int) -> None:
         try:
-            grupo, msg_grupo = self._cliente.criar_grupo(qtd)
-            if not grupo:
-                raise ValueError(msg_grupo)
+            # 1. Cria o grupo (lança erro se qtd for inválida)
+            grupo = self._cliente.criar_grupo(qtd)
 
+            # 2. Busca mesa
             mesa = self._mesa.encontrar_mesa_livre(grupo.numero_pessoas)
+            
+            # 3. Se não tem mesa, vai para a fila
             if not mesa:
-                sucesso_fila, msg_fila = self._fila.adicionar_grupo(grupo)
-                if not sucesso_fila: 
-                    raise ValueError(msg_fila)
+                self._fila.adicionar_grupo(grupo)
                 self.console.print_lines([f"[FILA] {grupo} adicionado à fila."])
                 return
 
-            garcom = self._func.encontrar_garcom_disponivel()
-            sucesso_designacao, msg_designacao = self._mesa.designar_garcom(mesa, garcom)
-            if not sucesso_designacao: 
-                self.console.print_lines([f"[AVISO] {msg_designacao}"])
+            # 4. Se tem mesa, tenta designar garçom
+            garcom = None
+            try:
+                garcom = self._func.encontrar_garcom_disponivel()
+                if garcom:
+                    self._mesa.designar_garcom(mesa, garcom)
+            except (ValueError, TypeError) as e_garcom:
+                self.console.print_lines([f"[AVISO] {e_garcom}"])
+                garcom = None 
 
-            sucesso_ocupar, msg_ocupar = self._mesa.ocupar_mesa(mesa.id_mesa, grupo)
-            if not sucesso_ocupar: 
-                raise RuntimeError(msg_ocupar)
-            conta, msg_conta = self._conta.abrir_nova_conta(grupo, mesa)
-            if not conta:
-                raise RuntimeError(f"Falha crítica ao abrir conta: {msg_conta}")
+            # 5. Ocupa a mesa e abre a conta
+            self._mesa.ocupar_mesa(mesa.id_mesa, grupo)
+            conta = self._conta.abrir_nova_conta(grupo, mesa)
 
+            # 6. Feedback
             self.console.print_lines([f"[ALOCADO] {grupo} -> Mesa {mesa.id_mesa} (Garçom: {garcom.nome if garcom else '-'}) | Conta #{conta.id_conta}"])
-            self.conta_v.exibir_extrato(self._conta_dict(conta))
+            self.conta_v.exibir_extrato(self._pedido_controller.conta_para_view(conta))
 
         except (ValueError, TypeError, RuntimeError) as e:
             self.console.print_lines([f"[ERRO] {e}"])
 
     def finalizar_atendimento_e_printar(self, mesa_id: int, gorjeta: float = 0.0) -> None:
-
         try:
+            # 1. Busca a conta
             conta = self._conta.encontrar_conta_por_mesa(mesa_id)
             if not conta:
                 raise ValueError(f"Não há conta aberta na mesa {mesa_id}.")
 
+            # 2. Processa a gorjeta (se houver)
             garcom_responsavel = conta.mesa.garcom_responsavel
             if garcom_responsavel and gorjeta > 0:
                 try:
@@ -158,18 +168,19 @@ class RestauranteController:
                     self.console.print_lines([f"[INFO] Gorjeta de R$ {gorjeta:.2f} registrada para o Garçom {garcom_responsavel.nome}."])
                 except (ValueError, TypeError) as e:
                     self.console.print_lines([f"[AVISO] Não foi possível registrar a gorjeta: {e}"])
+            
+            # 3. Prepara dados para exibição final
             total = conta.calcular_total()
-            extrato_data = self._pedido.conta_para_view(conta)
+            extrato_data = self._pedido_controller.conta_para_view(conta)
 
-            sucesso_conta, msg_conta = self._conta.fechar_conta(conta)
-            if not sucesso_conta:
-                raise RuntimeError(f"Falha ao fechar conta: {msg_conta}")
+            # 4. Fecha a conta
+            self._conta.fechar_conta(conta)
 
-            sucesso_mesa, msg_mesa = self._mesa.liberar_mesa(mesa_id)
-            if not sucesso_mesa:
-                self.conta_v.exibir_extrato(extrato_data)
-                raise RuntimeError(f"Falha ao libertar mesa: {msg_mesa}")
+            # 5. Libera a mesa (status vira SUJA)
+            self._mesa.liberar_mesa(mesa_id)
+            msg_mesa = f"Mesa {mesa_id} liberada e aguardando limpeza."
 
+            # 6. Feedback
             self.conta_v.exibir_extrato(extrato_data)
             self.console.print_lines([f"[OK] Conta #{conta.id_conta} fechada (R$ {total:.2f}). {msg_mesa}"])
 
@@ -178,10 +189,8 @@ class RestauranteController:
 
     def limpar_mesa_e_printar(self, mesa_id: int) -> None:
             try:
-                mesa = self._mesa.encontrar_mesa_por_numero(mesa_id)
-                if not mesa:
-                    raise ValueError(f"Mesa {mesa_id} não existe.")
-                mesa.limpar()
+                self._mesa.limpar_mesa(mesa_id)
+                
                 self.console.print_lines([f"[OK] Mesa {mesa_id} limpa e está livre."])
                 self.auto_alocar_e_printar(greedy=True)
             except (ValueError, TypeError) as e:
@@ -215,29 +224,49 @@ class RestauranteController:
             self.console.print_lines([f"[ERRO] Não foi possível listar a equipe: {e}"])
 
     def contratar_garcom_e_printar(self, nome: str, salario: float) -> None:
-        garcom_contratado, mensagem = self._func.contratar_garcom(nome, salario)
-        
-        self.console.print_lines([mensagem])
-        if garcom_contratado:
+        try:    
+            garcom_contratado = self._func.contratar_garcom(nome, salario)
+            mensagem = f"[OK] Garçom {garcom_contratado.nome} (ID: {garcom_contratado.id_funcionario}) contratado."
+            self.console.print_lines([mensagem])
             self.listar_equipe_e_printar()
+            
+        except (ValueError, TypeError) as e:
+            mensagem = f"[ERRO] Não foi possível contratar o garçom: {e}"
+            self.console.print_lines([mensagem])
 
     def contratar_cozinheiro_e_printar(self, nome: str, salario: float) -> None:
-        cozinheiro_contratado, mensagem = self._func.contratar_cozinheiro(nome, salario)
-        self.console.print_lines([mensagem])
-        if cozinheiro_contratado:
+        try:
+            cozinheiro_contratado = self._func.contratar_cozinheiro(nome, salario)
+            mensagem = f"[OK] Cozinheiro {cozinheiro_contratado.nome} (ID: {cozinheiro_contratado.id_funcionario}) contratado."
+            self.console.print_lines([mensagem])
             self.listar_equipe_e_printar()
+        except (ValueError, TypeError) as e:
+            mensagem = f"[ERRO] Não foi possível contratar o cozinheiro: {e}"
+            self.console.print_lines([mensagem])
 
     def demitir_funcionario_e_printar(self, id_func: int) -> None:
-        sucesso, mensagem = self._func.demitir_funcionario(id_func)
-        self.console.print_lines([mensagem])
-        if sucesso:
+        try:
+            func_demitido = self._func.demitir_funcionario(id_func)
+            
+            mensagem = f"[OK] Funcionário {func_demitido.nome} (ID: {func_demitido.id_funcionario}) foi demitido."
+            self.console.print_lines([mensagem])
             self.listar_equipe_e_printar()
 
+        except ValueError as e:
+            mensagem = f"[ERRO] {e}"
+            self.console.print_lines([mensagem])
+
     def adicionar_mesa_e_printar(self, id_mesa: int, capacidade: int) -> None:
-        mesa_criada, mensagem = self._mesa.cadastrar_mesa(id_mesa, capacidade)
-        self.console.print_lines([mensagem])
-        if mesa_criada:
-            self.mesa_v.exibir_mesas([self._mesa_dict(m) for m in self._mesa.listar_mesas()])
+        try:
+            mesa_criada = self._mesa.cadastrar_mesa(id_mesa, capacidade)
+            mensagem = f"Mesa {mesa_criada.id_mesa} cadastrada com sucesso."
+            self.console.print_lines([mensagem])
+            self.mesa_v.exibir_mesas([self._mesa.mesa_para_dict(m) for m in self._mesa.listar_mesas()])
+            self.auto_alocar_e_printar(greedy=False)
+            
+        except (ValueError, TypeError) as e:
+            mensagem = str(e)
+            self.console.print_lines([f"[ERRO] {mensagem}"])
             self.auto_alocar_e_printar(greedy=False)
 
     def ver_prato_mais_pedido_e_printar(self) -> None:
@@ -263,9 +292,23 @@ class RestauranteController:
             self.console.print_lines([f"[ERRO] Não foi possível gerar as estatísticas: {e}"])
     
     def renomear_funcionario_e_printar(self, id_func: int, novo_nome: str) -> None:
-        ok, msg = self._func.atualizar_nome(id_func, novo_nome)
-        self.console.print_lines([msg])
+        try:
+            func_atualizado = self._func.atualizar_nome(id_func, novo_nome)
+            
+            mensagem = f"[OK] Nome atualizado para '{func_atualizado.nome}' (ID {func_atualizado.id_funcionario})."
+            self.console.print_lines([mensagem])
+
+        except (ValueError, TypeError) as e:
+            mensagem = f"[ERRO] {e}"
+            self.console.print_lines([mensagem])
 
     def atualizar_salario_funcionario_e_printar(self, id_func: int, novo_salario: float) -> None:
-        ok, msg = self._func.atualizar_salario(id_func, novo_salario)
-        self.console.print_lines([msg])
+        try:
+            func_atualizado = self._func.atualizar_salario(id_func, novo_salario)
+            
+            mensagem = f"[OK] Salário atualizado para R$ {func_atualizado.salario_base:.2f} (ID {func_atualizado.id_funcionario})."
+            self.console.print_lines([mensagem])
+            
+        except (ValueError, TypeError) as e:
+            mensagem = f"[ERRO] {e}"
+            self.console.print_lines([mensagem])

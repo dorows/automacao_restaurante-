@@ -34,19 +34,18 @@ class CardapioController:
         ]
 
         for id_p, nome_p, preco_p, desc_p in pratos_iniciais:
-            ok, msg = self.adicionar_novo_prato(id_p, nome_p, preco_p, desc_p)
-            if not ok:
-                print(f"[AVISO DE INICIALIZAÇÃO] Não foi possível adicionar o prato '{nome_p}': {msg}")
+            try:
+                self.adicionar_novo_prato(id_p, nome_p, preco_p, desc_p)
+            except (ValueError, TypeError) as e:
+                print(f"[AVISO DE INICIALIZAÇÃO] Não foi possível adicionar o prato '{nome_p}': {e}")
 
 
-    def adicionar_novo_prato(self, id_prato: int, nome: str, preco: float, descricao: str) -> Tuple[bool, str]:
-        try:
-            novo_prato = Prato(id_prato, nome, preco, descricao)
-            self._cardapio.adicionar_prato(novo_prato)
-            return True, f"Prato '{nome}' adicionado com sucesso."
-
-        except (ValueError, TypeError) as e:
-            return False, str(e)
+    def adicionar_novo_prato(self, id_prato: int, nome: str, preco: float, descricao: str) -> Prato:
+        novo_prato = Prato(id_prato, nome, preco, descricao)
+        
+        self._cardapio.adicionar_prato(novo_prato)
+        
+        return novo_prato
 
     def buscar_prato_por_id(self, id_prato: int) -> Optional[Prato]:
         return self._cardapio.buscar_prato_por_id(id_prato)

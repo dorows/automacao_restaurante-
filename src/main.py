@@ -34,9 +34,6 @@ def build_app() -> AppController:
     cliente_ctrl = ClienteController()
 
     pedido_ctrl = PedidoController(
-        console_v=console_v,
-        pedido_v=pedido_v,
-        conta_v=conta_v,
         conta_controller=conta_ctrl,
         cardapio_controller=cardapio_ctrl,
     )

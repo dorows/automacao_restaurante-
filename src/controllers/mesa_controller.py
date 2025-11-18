@@ -33,63 +33,50 @@ class MesaController:
                     melhor = m
         return melhor
 
-    def ocupar_mesa(self, numero_mesa: int, grupo: GrupoCliente) -> Tuple[bool, str]:
-        try:
-            mesa = self.encontrar_mesa_por_numero(numero_mesa)
-            if not mesa:
-                raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
+    def ocupar_mesa(self, numero_mesa: int, grupo: GrupoCliente) -> Mesa:
+        mesa = self.encontrar_mesa_por_numero(numero_mesa)
+        if not mesa:
+            raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
+        mesa.ocupar(grupo)
+        return mesa
+
+    def liberar_mesa(self, numero_mesa: int) -> Mesa:
+        mesa = self.encontrar_mesa_por_numero(numero_mesa)
+        if not mesa:
+            raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
+        
+        mesa.liberar() 
+        return mesa
+
+    def limpar_mesa(self, numero_mesa: int) -> Mesa:
+        mesa = self.encontrar_mesa_por_numero(numero_mesa)
+        if not mesa:
+            raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
+        
+        mesa.limpar() 
+        return mesa
+
+    def designar_garcom(self, mesa: Mesa, garcom: Garcom) -> None:
+        if not isinstance(mesa, Mesa) or not isinstance(garcom, Garcom):
+            raise TypeError("Argumentos inválidos para designar garçom.")
+
+        antigo_garcom = mesa.garcom_responsavel
+        if antigo_garcom is not garcom:
+            if antigo_garcom:
+                antigo_garcom.remover_mesa(mesa)
             
-            mesa.ocupar(grupo)
-            return True, f"Mesa {numero_mesa} ocupada com sucesso."
-        except (ValueError, TypeError) as e:
-            return False, str(e)
+            garcom.adicionar_mesa(mesa)
+            mesa.garcom_responsavel = garcom
+                
 
-    def liberar_mesa(self, numero_mesa: int) -> Tuple[bool, str]:
-        try:
-            mesa = self.encontrar_mesa_por_numero(numero_mesa)
-            if not mesa:
-                raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
-            mesa.liberar() 
-            return True, f"Mesa {numero_mesa} liberada e aguardando limpeza."
-        except ValueError as e:
-            return False, str(e)
-    def limpar_mesa(self, numero_mesa: int) -> Tuple[bool, str]:
+    def cadastrar_mesa(self, id_mesa: int, capacidade: int) -> Mesa:
+        if self.encontrar_mesa_por_numero(id_mesa):
+            raise ValueError(f"Já existe uma mesa com o ID {id_mesa}.")
 
-        try:
-            mesa = self.encontrar_mesa_por_numero(numero_mesa)
-            if not mesa:
-                raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
-            mesa.limpar() 
-            return True, f"Mesa {numero_mesa} foi limpa e está livre."
-        except ValueError as e:
-            return False, str(e)
-
-
-    def designar_garcom(self, mesa: Mesa, garcom: Garcom) -> Tuple[bool, str]:
-        try:
-            if not isinstance(mesa, Mesa) or not isinstance(garcom, Garcom):
-                raise TypeError("Argumentos inválidos para designar garçom.")
-
-            antigo_garcom = mesa.garcom_responsavel
-            if antigo_garcom is not garcom:
-                if antigo_garcom:
-                    antigo_garcom.remover_mesa(mesa)
-                garcom.adicionar_mesa(mesa)
-                mesa.garcom_responsavel = garcom
-            
-            return True, f"Garçom {garcom.nome} designado para a Mesa {mesa.id_mesa}."
-        except (ValueError, TypeError) as e:
-            return False, str(e)
-
-    def cadastrar_mesa(self, id_mesa: int, capacidade: int) -> Tuple[Optional[Mesa], str]:
-        try:
-            if self.encontrar_mesa_por_numero(id_mesa):
-                raise ValueError(f"Já existe uma mesa com o ID {id_mesa}.")
-            nova = Mesa(id_mesa=id_mesa, capacidade=capacidade)
-            self._mesas.append(nova)
-            return nova, f"Mesa {id_mesa} cadastrada com sucesso."
-        except (ValueError, TypeError) as e:
-            return None, str(e)
+        # Mesa() pode levantar ValueError (cap < 0)
+        nova = Mesa(id_mesa=id_mesa, capacidade=capacidade)
+        self._mesas.append(nova)
+        return nova
 
     def mesa_para_dict(self, mesa: Mesa) -> Dict[str, object]:
         garcom = getattr(mesa, "garcom_responsavel", None)
