@@ -47,6 +47,16 @@ class Mesa:
             raise TypeError("O responsável deve ser um objeto Garcom ou None.")
         self._garcom_responsavel = garcom
 
+    @property
+    def capacidade(self) -> int:
+        return self._capacidade
+    
+    @capacidade.setter
+    def capacidade(self, nova_capacidade: int):
+        if not isinstance(nova_capacidade, int) or nova_capacidade <= 0:
+            raise ValueError("A capacidade deve ser um número inteiro positivo.")
+        self._capacidade = nova_capacidade
+    
     def ocupar(self, grupo: GrupoCliente) -> None:
         from .grupo_cliente import GrupoCliente
         if not isinstance(grupo, GrupoCliente):

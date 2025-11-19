@@ -31,3 +31,9 @@ class StatusPedidoInvalidoError(ErroDeStatusInvalido):
 
 class ContaJaFechadaError(ErroDeStatusInvalido):
     pass
+
+class ErroDePersistencia(ErroRestauranteBase):
+    pass
+
+class ArquivoCorrompidoError(ErroDePersistencia):
+    pass
