@@ -169,7 +169,7 @@ class RestauranteController:
     def contratar_cozinheiro(self, nome: str, salario: float) -> Cozinheiro:
         return self._func.contratar_cozinheiro(nome, salario)
 
-    def demitir_funcionario(self, id_func: int) -> Funcionario:
+    def demitir_funcionario(self, id_func: int):
         return self._func.demitir_funcionario(id_func)
 
     def adicionar_mesa(self, id_mesa: int, capacidade: int) -> Mesa:
