@@ -1,5 +1,3 @@
-# views/gui_stats_view.py
-
 import FreeSimpleGUI as sg
 from typing import Any, List
 import datetime
@@ -16,9 +14,6 @@ class GuiStatsView:
         sg.theme("DarkBlue3")
         sg.set_options(font=("Segoe UI", 10))
 
-    # ----------------------------------------------------------------------
-    # JANELA PRINCIPAL DE STATS
-    # ----------------------------------------------------------------------
     def show_stats_window(self) -> None:
         # --- Dados de prato mais pedido ---
         dados_prato = self._restaurante.ver_prato_mais_pedido()
@@ -48,7 +43,7 @@ class GuiStatsView:
             sum(g["total_gorjetas"] for g in dados_garcons) if dados_garcons else 0.0
         )
 
-        # --- CARD: prato mais popular ---
+        # CARD: prato mais popular
         layout_destaque_prato = [
             [
                 sg.Text(
@@ -81,7 +76,7 @@ class GuiStatsView:
             border_width=1,
         )
 
-        # --- CARD: resumo da equipe ---
+        # CARD: resumo da equipe 
         layout_resumo_equipe = [
             [
                 sg.Text(
@@ -136,7 +131,7 @@ class GuiStatsView:
             ]
         ]
 
-        # --- Tabela de ranking dos garçons ---
+        # Tabela de ranking dos garçons 
         cols = ["ID", "Garçom", "Mesas Atend.", "Total Gorjetas", "Média/Mesa"]
         tabela_relatorio = sg.Table(
             values=valores_tabela,
@@ -180,7 +175,7 @@ class GuiStatsView:
             pad=(0, 5),
         )
 
-        # --- Área do gráfico de pratos mais pedidos ---
+        # Área do gráfico de pratos mais pedidos 
         grafico_frame_layout = [
             [
                 sg.Text(
@@ -289,16 +284,7 @@ class GuiStatsView:
 
         window.close()
 
-    # ----------------------------------------------------------------------
-    # GERAÇÃO DO GRÁFICO (matplotlib -> PNG em memória)
-    # ----------------------------------------------------------------------
     def _gerar_grafico_pratos(self) -> bytes:
-        """
-        Gera um gráfico de barras com os pratos mais pedidos
-        usando os dados do PedidoController e retorna os bytes PNG.
-        """
-        # Usa o PedidoController interno do restaurante
-        # (se preferir, pode criar um método no RestauranteController que delega isso)
         try:
             estatisticas = self._restaurante._pedido_controller.get_estatisticas_pratos()
         except AttributeError:
@@ -327,9 +313,6 @@ class GuiStatsView:
         buf.seek(0)
         return buf.read()
 
-    # ----------------------------------------------------------------------
-    # EXPORTAR TEXTO
-    # ----------------------------------------------------------------------
     def _exportar_arquivo(self, dados_prato: dict, dados_garcons: List[dict]) -> None:
         try:
             filename = (

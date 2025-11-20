@@ -12,9 +12,6 @@ class GuiMainView:
 
         self._build_window()
 
-    # ------------------------------------------------------------------
-    # Construção da janela principal
-    # ------------------------------------------------------------------
     def _build_window(self) -> None:
         # Tabela de mesas
         tabela_mesas = sg.Table(
@@ -92,9 +89,6 @@ class GuiMainView:
             row_height=24,
         )
 
-        # -------------------------------
-        # Cabeçalho com navegação
-        # -------------------------------
         header_row = [
             sg.Text(
                 "🍽️  Automação de Restaurante",
@@ -127,9 +121,6 @@ class GuiMainView:
             ),
         ]
 
-        # -------------------------------
-        # Coluna Mesas + Fila
-        # -------------------------------
         frame_mesas = sg.Frame(
             "Mesas",
             [[tabela_mesas]],
@@ -155,9 +146,6 @@ class GuiMainView:
             expand_y=True,
         )
 
-        # -------------------------------
-        # Coluna Cardápio + Conta/Pedidos
-        # -------------------------------
         frame_cardapio = sg.Frame(
             "Cardápio",
             [[tabela_cardapio]],
@@ -192,9 +180,6 @@ class GuiMainView:
             expand_y=True,
         )
 
-        # -------------------------------
-        # Barra de ações
-        # -------------------------------
         actions_row = [
             sg.Button(
                 "Chegada",
@@ -245,9 +230,6 @@ class GuiMainView:
             ),
         ]
 
-        # -------------------------------
-        # Barra de status
-        # -------------------------------
         status_row = [
             sg.Text(
                 "",
@@ -257,9 +239,6 @@ class GuiMainView:
             )
         ]
 
-        # -------------------------------
-        # Layout final
-        # -------------------------------
         layout = [
             header_row,
             [sg.HorizontalSeparator()],
@@ -281,9 +260,6 @@ class GuiMainView:
             size=(1100, 650),
         )
 
-    # ------------------------------------------------------------------
-    # API usada pelo main.py
-    # ------------------------------------------------------------------
     def read(self):
         return self.window.read()
 

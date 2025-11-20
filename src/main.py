@@ -17,7 +17,7 @@ from views.gui_equipe_view import GuiEquipeView
 from views.gui_stats_view import GuiStatsView
 from views.gui_mesa_view import GuiMesaView
 
-from ui_theme import configure_global_ui
+from views.ui_theme import configure_global_ui
 
 
 configure_global_ui()
@@ -83,15 +83,11 @@ def _get_selected_prato_id(values: Dict[str, Any], cardapio_cache: List[Dict[str
     return int(prato.get("id"))
 
 def abrir_janela_checkout_extrato(extrato: Dict[str, Any]) -> Tuple[float, bool]:
-    """
-    Abre uma janela de checkout/extrato para a conta.
-    Retorna (gorjeta_escolhida, confirmado: bool).
-    """
     mesa_id = extrato.get("mesa_id")
     cliente = extrato.get("cliente", "Cliente")
     subtotal = float(extrato.get("total", 0.0))
 
-    # 10% sugerido
+    # 10% sugerido de gorjeta
     sugerido = round(subtotal * 0.10, 2)
     gorjeta_inicial_str = f"{sugerido:.2f}"
 
@@ -237,9 +233,6 @@ def _atualizar_pedidos_da_mesa(
 
     gui.update_pedidos(linhas_tabela)
     gui.update_conta_info(conta_view)
-
-
-# --- Loop Principal da Aplicação ---
 
 def run_gui(app_parts: Dict[str, Any]) -> None:
     """
