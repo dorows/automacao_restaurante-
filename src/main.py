@@ -17,6 +17,11 @@ from views.gui_equipe_view import GuiEquipeView
 from views.gui_stats_view import GuiStatsView
 from views.gui_mesa_view import GuiMesaView
 
+from ui_theme import configure_global_ui
+
+
+configure_global_ui()
+
 def build_app_gui() -> Dict[str, Any]:
 
     cliente_ctrl = ClienteController()
