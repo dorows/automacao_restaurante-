@@ -77,6 +77,111 @@ def _get_selected_prato_id(values: Dict[str, Any], cardapio_cache: List[Dict[str
     prato = cardapio_cache[idx]
     return int(prato.get("id"))
 
+def abrir_janela_checkout_extrato(extrato: Dict[str, Any]) -> Tuple[float, bool]:
+    """
+    Abre uma janela de checkout/extrato para a conta.
+    Retorna (gorjeta_escolhida, confirmado: bool).
+    """
+    mesa_id = extrato.get("mesa_id")
+    cliente = extrato.get("cliente", "Cliente")
+    subtotal = float(extrato.get("total", 0.0))
+
+    # 10% sugerido
+    sugerido = round(subtotal * 0.10, 2)
+    gorjeta_inicial_str = f"{sugerido:.2f}"
+
+    # Monta a tabela de itens: um row por linha de item
+    tabela_itens: List[List[str]] = []
+    for item in extrato.get("itens", []):
+        pedido_id = item.get("pedido_id")
+        status = item.get("status", "")
+        for linha in item.get("linhas", []):
+            tabela_itens.append([str(pedido_id), status, linha])
+
+    headings = ["Pedido", "Status", "Item"]
+
+    layout = [
+        [sg.Text(f"Checkout - Mesa {mesa_id} - {cliente}", font=("Any", 14, "bold"))],
+        [sg.Table(
+            values=tabela_itens,
+            headings=headings,
+            key="-CHK_TABELA-",
+            auto_size_columns=True,
+            justification="left",
+            expand_x=True,
+            expand_y=True,
+            num_rows=min(len(tabela_itens), 10) if tabela_itens else 5,
+            enable_events=False,
+        )],
+        [sg.Text(f"Subtotal: R$ {subtotal:.2f}", key="-CHK_SUBTOTAL-")],
+        [sg.Text(f"Sugerido 10%: R$ {sugerido:.2f}", key="-CHK_SUGERIDO-")],
+        [
+            sg.Text("Gorjeta:"),
+            sg.Input(
+                gorjeta_inicial_str,
+                key="-CHK_GORJETA-",
+                size=(10, 1),
+                enable_events=True,
+            ),
+            sg.Text("R$"),
+        ],
+        [
+            sg.Text("Total a pagar: R$ ", key="-CHK_TOTAL_LABEL-"),
+            sg.Text(f"{subtotal + sugerido:.2f}", key="-CHK_TOTAL-"),
+        ],
+        [
+            sg.Button("Confirmar", key="-CHK_CONFIRMAR-"),
+            sg.Button("Cancelar", key="-CHK_CANCELAR-"),
+        ],
+    ]
+
+    window = sg.Window(
+        "Checkout da Conta",
+        layout,
+        modal=True,
+        resizable=True,
+        finalize=True,
+    )
+
+    gorjeta_valor = sugerido
+    confirmado = False
+
+    while True:
+        event, values = window.read()
+        if event in (sg.WINDOW_CLOSED, "-CHK_CANCELAR-"):
+            confirmado = False
+            break
+
+        if event == "-CHK_GORJETA-":
+            # Atualiza o total conforme o usuário altera a gorjeta
+            txt = values.get("-CHK_GORJETA-", "").strip()
+            try:
+                if txt == "":
+                    gorjeta_valor = 0.0
+                else:
+                    gorjeta_valor = float(txt.replace(",", "."))
+            except ValueError:
+                gorjeta_valor = 0.0
+            total_final = subtotal + gorjeta_valor
+            window["-CHK_TOTAL-"].update(f"{total_final:.2f}")
+
+        elif event == "-CHK_CONFIRMAR-":
+            # Tenta ler a gorjeta final e confirma
+            txt = values.get("-CHK_GORJETA-", "").strip()
+            try:
+                if txt == "":
+                    gorjeta_valor = 0.0
+                else:
+                    gorjeta_valor = float(txt.replace(",", "."))
+            except ValueError:
+                sg.popup_error("Valor de gorjeta inválido.")
+                continue
+
+            confirmado = True
+            break
+
+    window.close()
+    return gorjeta_valor, confirmado
 
 def _atualizar_dashboard(
     gui: GuiMainView,
@@ -229,18 +334,38 @@ def run_gui(app_parts: Dict[str, Any]) -> None:
                 if mesa_id_selecionada is None:
                     gui.show_error("Selecione uma mesa para finalizar o atendimento.")
                     continue
-                
-                gorjeta_str = sg.popup_get_text("Valor da gorjeta (opcional):", title="Gorjeta")
-                gorjeta = 0.0
-                if gorjeta_str:
-                    gorjeta = float(gorjeta_str.replace(",", "."))
-                
-                extrato = restaurante.finalizar_atendimento(mesa_id_selecionada, gorjeta)
-                gui.show_info(f"Conta #{extrato['id_conta']} fechada. Total: R$ {extrato['total']:.2f}")
-                
+
+                # Busca a conta da mesa
+                conta = conta_ctrl.encontrar_conta_por_mesa(mesa_id_selecionada)
+                if not conta:
+                    gui.show_error(f"Não há conta aberta na mesa {mesa_id_selecionada}.")
+                    continue
+
+                # Monta o extrato em formato de view (itens, total, etc.)
+                extrato_view = pedido_ctrl.conta_para_view(conta)
+
+                # Abre a janela de checkout/extrato
+                gorjeta, confirmado = abrir_janela_checkout_extrato(extrato_view)
+                if not confirmado:
+                    # Usuário cancelou o checkout; não fecha a conta
+                    gui.set_status("Finalização cancelada pelo usuário.")
+                    continue
+
+                # Confirma o pagamento e finaliza de fato o atendimento
+                extrato_final = restaurante.finalizar_atendimento(mesa_id_selecionada, gorjeta)
+
+                total = float(extrato_final.get("total", 0.0))
+                gui.show_info(
+                    f"Conta #{extrato_final['id_conta']} fechada.\n"
+                    f"Subtotal: R$ {total:.2f}\n"
+                    f"Gorjeta: R$ {gorjeta:.2f}\n"
+                    f"Total pago: R$ {total + gorjeta:.2f}"
+                )
+
                 mesa_id_selecionada = None
                 mesas_cache, cardapio_cache = _atualizar_dashboard(gui, mesa_ctrl, fila_ctrl, cardapio_ctrl)
-
+                gui.update_pedidos([])
+                gui.update_conta_info(None)
 
             elif event == "-BTN_LIMPAR-":
                 if mesa_id_selecionada is None:
