@@ -1,0 +1,443 @@
+@startuml
+
+' --- CONFIGURAÇÕES VISUAIS ---
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 90
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+' Ajuste de fontes para leitura
+skinparam class {
+    BackgroundColor White
+    ArrowColor #333333
+    BorderColor #333333
+    FontSize 12
+    AttributeFontSize 11
+    MethodFontSize 11
+}
+
+' ==========================================
+' 1. VIEWS (CAMADA DE INTERFACE)
+' ==========================================
+package "1. Views" {
+    class GuiMainView {
+        - _mesas_data: List[Dict]
+        - _fila_data: List[Dict]
+        - _cardapio_data: List[Dict]
+        - _pedidos_data: List[List]
+        - window: sg.Window
+        + __init__()
+        - _build_window() : void
+        + read() : Tuple[str, dict]
+        + close() : void
+        + update_mesas(mesas: List[Dict]) : void
+        + update_fila(fila: List[Dict]) : void
+        + update_cardapio(pratos: List[Dict]) : void
+        + update_pedidos(linhas: List[List]) : void
+        + update_conta_info(conta: Optional[Dict]) : void
+        + set_status(msg: str) : void
+        + show_info(msg: str) : void
+        + show_error(msg: str) : void
+    }
+
+    class GuiMesaView {
+        - _restaurante: RestauranteController
+        - _mesa_ctrl: MesaController
+        + __init__(restaurante_controller: Any, mesa_controller: Any)
+        + show_mesa_window() : void
+    }
+
+    class GuiEquipeView {
+        - _func_ctrl: FuncionarioController
+        + __init__(funcionario_controller: Any)
+        + show_equipe_window() : void
+    }
+
+    class GuiCardapioView {
+        - _cardapio_ctrl: CardapioController
+        + __init__(cardapio_controller: Any)
+        + show_cardapio_window() : void
+    }
+
+    class GuiStatsView {
+        - _restaurante: RestauranteController
+        + __init__(restaurante_controller: Any)
+        + show_stats_window() : void
+        - _gerar_grafico_pratos() : bytes
+        - _exportar_arquivo(dados_prato: dict, dados_garcons: List[dict]) : void
+    }
+
+    class GuiCheckoutView {
+        + {static} abrir_janela_checkout(extrato: Dict[str, Any]) : Tuple[float, bool]
+    }
+}
+
+' ==========================================
+' 2. CONTROLLERS (CAMADA DE CONTROLE)
+' ==========================================
+package "2. Controllers" {
+    class RestauranteController {
+        - _pedido_controller: PedidoController
+        - _mesa: MesaController
+        - _conta: ContaController
+        - _fila: FilaController
+        - _func: FuncionarioController
+        - _cardapio: CardapioController
+        - _cliente: ClienteController
+        + __init__(...)
+        + get_cardapio_data() : List[Dict]
+        + auto_alocar_grupos(greedy: bool) : List[str]
+        + receber_clientes(qtd: int) : str
+        + finalizar_atendimento(mesa_id: int, gorjeta: float) : Dict
+        + limpar_mesa(mesa_id: int) : str
+        + listar_equipe() : List[Dict]
+        + contratar_garcom(nome: str, salario: float) : Garcom
+        + contratar_cozinheiro(nome: str, salario: float) : Cozinheiro
+        + demitir_funcionario(id_func: int) : void
+        + adicionar_mesa(id_mesa: int, capacidade: int) : Mesa
+        + ver_prato_mais_pedido() : Dict
+        + confirmar_pedido_na_cozinha(mesa_id: int) : str
+        + marcar_pedido_pronto(mesa_id: int) : str
+        + renomear_funcionario(id_func: int, novo_nome: str) : str
+        + atualizar_salario_funcionario(id_func: int, novo_salario: float) : str
+        + obter_dados_relatorio_equipe() : List[Dict]
+        + remover_mesa(id_mesa: int) : str
+        + atualizar_mesa(id_mesa: int, nova_capacidade: int) : str
+    }
+
+    class MesaController {
+        - _mesa_dao: MesaDAO
+        + __init__()
+        + listar_mesas() : List[Mesa]
+        + encontrar_mesa_por_numero(n: int) : Optional[Mesa]
+        + encontrar_mesa_livre(qtd: int) : Optional[Mesa]
+        + ocupar_mesa(n: int, grupo: GrupoCliente) : Mesa
+        + liberar_mesa(n: int) : Mesa
+        + limpar_mesa(n: int) : Mesa
+        + designar_garcom(mesa: Mesa, garcom: Garcom) : void
+        + cadastrar_mesa(id: int, cap: int) : Mesa
+        + mesa_para_dict(mesa: Mesa) : Dict
+        + listar_mesas_para_view() : List[Dict]
+        + remover_mesa(id: int) : void
+        + atualizar_mesa(id: int, nova_cap: int) : void
+    }
+
+    class FuncionarioController {
+        - _dao: FuncionarioDAO
+        + __init__()
+        - _gerar_id() : int
+        + contratar_garcom(nome: str, sal: float) : Garcom
+        + contratar_cozinheiro(nome: str, sal: float) : Cozinheiro
+        + demitir_funcionario(id: int) : Funcionario
+        + listar_funcionarios() : List[Funcionario]
+        + encontrar_garcom_disponivel() : Optional[Garcom]
+        + encontrar_cozinheiro_disponivel() : Optional[Cozinheiro]
+        + encontrar_funcionario_por_id(id: int) : Optional[Funcionario]
+        + atualizar_nome(id: int, novo_nome: str) : Funcionario
+        + atualizar_salario(id: int, novo_sal: float) : Funcionario
+        + listar_garcons_para_view() : List[Dict]
+        + listar_funcionarios_para_view_gui() : List[List]
+        + gerar_relatorio_garcons() : List[Dict]
+    }
+
+    class GrupoClienteController {
+        - _dao: GrupoClienteDAO
+        + __init__()
+        - _gerar_id_grupo() : int
+        + criar_grupo(n_pessoas: int) : GrupoCliente
+        + listar_grupos() : List[GrupoCliente]
+        + encontrar_grupo_por_id(id: int) : Optional[GrupoCliente]
+        + atualizar_grupo(grupo: GrupoCliente) : void
+        + remover_grupo(id: int) : void
+    }
+
+    class FilaController {
+        - _dao: FilaDeEsperaDAO
+        - _cliente_controller: ClienteController
+        - _fila_de_espera: FilaDeEspera
+        + __init__(cliente_controller: ClienteController)
+        - _reconstruir_fila() : FilaDeEspera
+        + fila() : FilaDeEspera
+        + adicionar_grupo(grupo: GrupoCliente) : void
+        + chamar_proximo_grupo(cap: int) : Optional[GrupoCliente]
+        + remover(grupo: GrupoCliente) : void
+        + esta_vazia() : bool
+        + listar() : List[GrupoCliente]
+        + listar_para_view() : List[Dict]
+    }
+
+    class ContaController {
+        - _dao: ContaDAO
+        + __init__()
+        - _gerar_id_conta() : int
+        + abrir_nova_conta(grupo: GrupoCliente, mesa: Mesa) : Conta
+        + fechar_conta(conta: Conta) : void
+        + atualizar_conta(conta: Conta) : void
+        + encontrar_conta_por_mesa(n_mesa: int) : Optional[Conta]
+        + listar_contas() : List[Conta]
+    }
+
+    class CardapioController {
+        - _cardapio_dao: CardapioDAO
+        + __init__()
+        + pratos() : List[Prato]
+        + adicionar_novo_prato(id: int, nome: str, preco: float, desc: str) : Prato
+        + atualizar_prato(id: int, nome: str, preco: float) : void
+        + remover_prato(id: int) : void
+        + buscar_prato_por_id(id: int) : Optional[Prato]
+        + listar_pratos_para_view() : List[Dict]
+        + get_dados_tabela() : List[List]
+    }
+
+    class PedidoController {
+        - _contas: ContaController
+        - _cardapio: CardapioController
+        - _pedido_dao: PedidoDAO
+        + __init__(conta_controller, cardapio_controller)
+        - _pedido_dict(p: Pedido) : dict
+        - _find_pedido_by_status(conta: Conta, status: StatusPedido) : Optional[Pedido]
+        + encontrar_pedido_por_id(id: int) : Optional[Pedido]
+        + criar_novo_pedido(mesa: Mesa, garcom: Garcom, grupo: GrupoCliente) : Pedido
+        + adicionar_item_a_conta(conta: Conta, prato: Prato, qtd: int, obs: str) : void
+        + realizar_pedido(mesa_id: int, prato_id: int, qtd: int) : Conta
+        + confirmar_pedido(mesa_id: int) : Pedido
+        + marcar_pedido_pronto(mesa_id: int) : Pedido
+        + entregar_pedido(mesa_id: int) : Pedido
+        + get_estatisticas_pratos() : Dict[Prato, int]
+        + conta_para_view(conta: Conta) : dict
+        + pedido_para_view(pedido: Pedido) : dict
+    }
+}
+
+' ==========================================
+' 3. MODELS (REGRA DE NEGÓCIO)
+' ==========================================
+package "3. Models" {
+    class Prato {
+        - _id_prato: int
+        - _nome: str
+        - _preco: float
+        - _descricao: str
+        + __init__(id: int, nome: str, preco: float, desc: str)
+        + id_prato() : int
+        + nome() : str
+        + preco() : float
+        + descricao() : str
+        + __str__() : str
+    }
+
+    class ItemPedido {
+        - _prato: Prato
+        - _quantidade: int
+        - _observacao: str
+        + __init__(prato: Prato, qtd: int, obs: str)
+        + calcular_subtotal() : float
+        + __str__() : str
+    }
+
+    class Cardapio {
+        - _pratos: List[Prato]
+        + __init__()
+        + pratos() : List[Prato]
+        + adicionar_prato(prato: Prato) : void
+        + buscar_prato_por_id(id: int) : Optional[Prato]
+        + exibir() : str
+    }
+
+    class GrupoCliente {
+        - _id_grupo: int
+        - _numero_pessoas: int
+        - _status: StatusGrupoCliente
+        + __init__(id: int, n_pessoas: int)
+        + id_grupo() : int
+        + sentar() : void
+        + sair() : void
+    }
+
+    abstract class Funcionario {
+        - _id_funcionario: int
+        - _nome: str
+        - _salario_base: float
+        + __init__(id: int, nome: str, sal: float)
+        + {abstract} calcular_pagamento() : float
+        + exibir_dados() : str
+    }
+
+    class Garcom {
+        - _gorjetas: float
+        - _mesas_atendidas: List[Mesa]
+        + __init__(id: int, nome: str, sal: float)
+        + adicionar_gorjeta(valor: float) : void
+        + adicionar_mesa(mesa: Mesa) : void
+        + remover_mesa(mesa: Mesa) : void
+        + calcular_pagamento() : float
+    }
+
+    class Cozinheiro {
+        - _pedidos_em_preparo: List[Pedido]
+        + __init__(id: int, nome: str, sal: float)
+        + iniciar_preparo_pedido(p: Pedido) : void
+        + finalizar_preparo_pedido(p: Pedido) : void
+        + calcular_pagamento() : float
+    }
+
+    class Mesa {
+        - _id_mesa: int
+        - _capacidade: int
+        - _status: StatusMesa
+        - _grupo_cliente: Optional[GrupoCliente]
+        - _conta: Optional[Conta]
+        - _garcom_responsavel: Optional[Garcom]
+        + __init__(id: int, cap: int)
+        + ocupar(grupo: GrupoCliente) : void
+        + liberar() : void
+        + limpar() : void
+    }
+
+    class Pedido {
+        - _id_pedido: int
+        - _mesa: Mesa
+        - _garcom: Garcom
+        - _grupo_cliente: GrupoCliente
+        - _status: StatusPedido
+        - _itens: List[ItemPedido]
+        + __init__(mesa: Mesa, garcom: Garcom, grupo: GrupoCliente)
+        + adicionar_item(item: ItemPedido) : void
+        + calcular_subtotal_pedido() : float
+        + confirmar() : void
+        + iniciar_preparo() : void
+        + finalizar_preparo() : void
+        + entregar_pedido() : void
+    }
+
+    class Conta {
+        - _id_conta: int
+        - _grupo_cliente: GrupoCliente
+        - _mesa: Mesa
+        - _pedidos: List[Pedido]
+        - _aberta: bool
+        + __init__(id: int, grupo: GrupoCliente, mesa: Mesa)
+        + adicionar_pedido(pedido: Pedido) : void
+        + calcular_total() : float
+        + fechar() : void
+    }
+
+    class FilaDeEspera {
+        - _fila: List[GrupoCliente]
+        + __init__()
+        + adicionar_grupo(grupo: GrupoCliente) : void
+        + chamar_proximo_grupo(cap: int) : Optional[GrupoCliente]
+    }
+}
+
+' ==========================================
+' 4. PERSISTENCE (DAOS)
+' ==========================================
+package "4. Persistence" {
+    abstract class DAO {
+        - _datasource: str
+        - _cache: dict
+        + __init__(datasource: str)
+        + add(key: Any, obj: Any) : void
+        + update(key: Any, obj: Any) : void
+        + get(key: Any) : Any
+        + remove(key: Any) : void
+        + get_all() : ValuesView
+    }
+
+    class MesaDAO {
+        + encontrar_mesa_por_numero(n: int) : Mesa
+    }
+    class FuncionarioDAO {
+        + get_proximo_id() : int
+    }
+    class PedidoDAO {}
+    class GrupoClienteDAO {
+        + get_proximo_id() : int
+    }
+    class ContaDAO {
+        + get_proximo_id() : int
+    }
+    class FilaDeEsperaDAO {
+        + adicionar_id(id: int) : void
+        + remover_id(id: int) : void
+        + get_ids_fila() : List[int]
+        + chamar_proximo_id(cap: int, grupos: dict) : int
+    }
+    class CardapioDAO {}
+}
+
+' ==========================================
+' RELACIONAMENTOS
+' ==========================================
+
+' --- Herança ---
+Funcionario <|-- Garcom
+Funcionario <|-- Cozinheiro
+DAO <|-- MesaDAO
+DAO <|-- FuncionarioDAO
+DAO <|-- PedidoDAO
+DAO <|-- GrupoClienteDAO
+DAO <|-- ContaDAO
+DAO <|-- FilaDeEsperaDAO
+DAO <|-- CardapioDAO
+
+' --- Models Internos (Atributos/Agregação) ---
+Mesa "0..*" o-- "0..1" Garcom : "_garcom_responsavel"
+Mesa "0..1" o-- "0..1" GrupoCliente : "_grupo_cliente"
+Mesa "0..1" o-- "0..1" Conta : "_conta"
+Conta "1" o-- "1" GrupoCliente : "_grupo_cliente"
+Conta "0..*" o-- "1" Mesa : "_mesa"
+Conta "1" *-- "0..*" Pedido : "_pedidos (List)"
+Pedido "0..*" --> "1" Mesa : "_mesa"
+Pedido "0..*" --> "1" Garcom : "_garcom"
+Pedido "0..*" --> "1" GrupoCliente : "_grupo_cliente"
+Pedido "1" *-- "1..*" ItemPedido : "_itens (List)"
+ItemPedido "0..*" --> "1" Prato : "_prato"
+FilaDeEspera "1" o-- "0..*" GrupoCliente : "_fila (List)"
+Cardapio "1" o-- "0..*" Prato : "_pratos (List)"
+Cozinheiro "0..1" --> "0..*" Pedido : "_pedidos_em_preparo"
+Garcom "0..1" --> "0..*" Mesa : "_mesas_atendidas"
+
+' --- Controller -> DAO (Métodos CRUD usados) ---
+MesaController "1" --> "1" MesaDAO : "get_all(), get(), update(),\nadd(), remove()"
+FuncionarioController "1" --> "1" FuncionarioDAO : "get_proximo_id(), add(),\nremove(), get_all(), get(), update()"
+GrupoClienteController "1" --> "1" GrupoClienteDAO : "get_proximo_id(), add(),\nget_all(), get(), update(), remove()"
+ContaController "1" --> "1" ContaDAO : "get_proximo_id(), add(),\nupdate(), get_all()"
+CardapioController "1" --> "1" CardapioDAO : "get_all(), add(),\nupdate(), remove(), get()"
+PedidoController "1" --> "1" PedidoDAO : "get(), add(), update(), get_all()"
+FilaController "1" --> "1" FilaDeEsperaDAO : "get_ids_fila(), remover_id(),\nadicionar_id(), chamar_proximo_id()"
+
+' --- Controller -> Model (Métodos de Domínio chamados) ---
+MesaController "1" ..> "0..*" Mesa : "ocupar(), liberar(),\nlimpar(), __init__"
+FuncionarioController "1" ..> "0..*" Funcionario : "__init__, nome(), salario_base()"
+GrupoClienteController "1" ..> "0..*" GrupoCliente : "__init__"
+ContaController "1" ..> "0..*" Conta : "__init__, fechar()"
+CardapioController "1" ..> "0..*" Prato : "__init__, nome(), preco()"
+PedidoController "1" ..> "0..*" Pedido : "__init__, adicionar_item(),\nconfirmar(), finalizar_preparo(),\nentregar_pedido()"
+FilaController "1" ..> "1" FilaDeEspera : "adicionar_grupo(), remover()"
+
+' --- Restaurante Facade (Métodos delegados aos sub-controllers) ---
+RestauranteController "1" o-- "1" MesaController : "encontrar_mesa_livre(),\ndesignar_garcom(), ocupar_mesa(),\nliberar_mesa(), limpar_mesa(),\nlistar_mesas()"
+RestauranteController "1" o-- "1" ContaController : "abrir_nova_conta(),\nencontrar_conta_por_mesa(),\nfechar_conta()"
+RestauranteController "1" o-- "1" FilaController : "listar(), adicionar_grupo(),\nremover()"
+RestauranteController "1" o-- "1" FuncionarioController : "encontrar_garcom_disponivel(),\ncontratar_*, demitir_*, listar_*"
+RestauranteController "1" o-- "1" CardapioController : "listar_pratos_para_view()"
+RestauranteController "1" o-- "1" GrupoClienteController : "criar_grupo()"
+RestauranteController "1" o-- "1" PedidoController : "conta_para_view(),\nget_estatisticas_pratos(),\nconfirmar_pedido()"
+
+' --- Dependências Cruzadas entre Controllers ---
+FilaController "1" ..> "1" GrupoClienteController : "encontrar_grupo_por_id()"
+PedidoController "1" ..> "1" ContaController : "encontrar_conta_por_mesa(),\natualizar_conta(), adicionar_pedido()"
+PedidoController "1" ..> "1" CardapioController : "buscar_prato_por_id()"
+
+' --- Views -> Controllers (Métodos chamados pela GUI) ---
+GuiMainView "1" ..> "1" RestauranteController : "receber_clientes(), auto_alocar_grupos(),\nconfirmar_pedido_na_cozinha(),\nmarcar_pedido_pronto(), entregar_pedido(),\nfinalizar_atendimento(), limpar_mesa(),\nget_cardapio_data()"
+GuiMesaView "1" ..> "1" MesaController : "listar_mesas(), cadastrar_mesa(),\natualizar_mesa(), remover_mesa()"
+GuiEquipeView "1" ..> "1" FuncionarioController : "listar_funcionarios_para_view_gui(),\ncontratar_*, atualizar_*, demitir_*"
+GuiCardapioView "1" ..> "1" CardapioController : "get_dados_tabela(), adicionar_novo_prato(),\natualizar_prato(), remover_prato()"
+GuiStatsView "1" ..> "1" RestauranteController : "ver_prato_mais_pedido(),\nobter_dados_relatorio_equipe()"
+
+@enduml
