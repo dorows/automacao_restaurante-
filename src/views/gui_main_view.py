@@ -108,6 +108,13 @@ class GuiMainView:
                 size=(9, 1),
             ),
             sg.Button(
+                "Cardápio",
+                key="-BTN_MENU_ADMIN-",
+                button_color=("white", "#00897B"),
+                size=(9, 1),
+            ),
+            
+            sg.Button(
                 "Stats",
                 key="-BTN_STATS-",
                 button_color=("white", "#00897B"),

@@ -16,6 +16,7 @@ from views.gui_main_view import GuiMainView
 from views.gui_equipe_view import GuiEquipeView
 from views.gui_stats_view import GuiStatsView
 from views.gui_mesa_view import GuiMesaView
+from views.gui_cardapio_view import GuiCardapioView
 
 from views.ui_theme import configure_global_ui
 
@@ -251,6 +252,7 @@ def run_gui(app_parts: Dict[str, Any]) -> None:
     gui_equipe = GuiEquipeView(func_ctrl)
     gui_stats = GuiStatsView(restaurante)
     gui_mesa = GuiMesaView(restaurante, mesa_ctrl)
+    gui_cardapio = GuiCardapioView(cardapio_ctrl)
     mesas_cache, cardapio_cache = _atualizar_dashboard(gui, mesa_ctrl, fila_ctrl, cardapio_ctrl)
     
     mesa_id_selecionada: Optional[int] = None 
@@ -386,6 +388,11 @@ def run_gui(app_parts: Dict[str, Any]) -> None:
                 
             elif event == "-BTN_STATS-": 
                 gui_stats.show_stats_window()
+                
+            elif event == "-BTN_MENU_ADMIN-":  # <--- NOVO EVENTO
+                gui_cardapio.show_cardapio_window()
+                # Atualiza o dashboard (tabela de cardápio principal) ao fechar
+                mesas_cache, cardapio_cache = _atualizar_dashboard(gui, mesa_ctrl, fila_ctrl, cardapio_ctrl)
 
         except Exception as e:
             gui.show_error(f"Erro de Sistema: {e}")
