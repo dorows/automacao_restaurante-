@@ -1,5 +1,5 @@
 from typing import List, Optional, Iterator
-from .grupo_cliente import GrupoCliente # Import relativo
+from .grupo_cliente import GrupoCliente 
 
 class FilaDeEspera:
     def __init__(self):

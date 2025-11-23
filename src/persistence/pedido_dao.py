@@ -1,5 +1,3 @@
-# persistence/pedido_dao.py
-
 import os
 import pickle
 from typing import Dict, List, Union
@@ -35,7 +33,6 @@ class PedidoDAO(DAO):
         else:
             raise ValueError("Formato de arquivo de pedidos inválido.")
 
-    # ------------------ API pública ------------------
 
     def add(self, key: int, obj: Pedido) -> None:
         self._pedidos[key] = obj

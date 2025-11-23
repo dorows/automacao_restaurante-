@@ -10,20 +10,16 @@ class GuiStatsView:
     def __init__(self, restaurante_controller: Any):
         self._restaurante = restaurante_controller
 
-        # Tema global e fonte "mais moderna"
         sg.theme("DarkBlue3")
         sg.set_options(font=("Segoe UI", 10))
 
     def show_stats_window(self) -> None:
-        # --- Dados de prato mais pedido ---
         dados_prato = self._restaurante.ver_prato_mais_pedido()
         nome_prato = dados_prato.get("prato_nome", "N/A")
         qtd_prato = dados_prato.get("quantidade", 0)
 
-        # --- Dados de equipe (garçons) ---
         dados_garcons = self._restaurante.obter_dados_relatorio_equipe()
 
-        # Tabela de garçons
         valores_tabela: List[List[Any]] = []
         for g in dados_garcons:
             valores_tabela.append(
@@ -36,14 +32,12 @@ class GuiStatsView:
                 ]
             )
 
-        # Resumos numéricos rápidos
         total_garcons = len(dados_garcons)
         total_mesas = sum(g["mesas"] for g in dados_garcons) if dados_garcons else 0
         total_gorjetas = (
             sum(g["total_gorjetas"] for g in dados_garcons) if dados_garcons else 0.0
         )
 
-        # CARD: prato mais popular
         layout_destaque_prato = [
             [
                 sg.Text(
@@ -113,7 +107,6 @@ class GuiStatsView:
             border_width=1,
         )
 
-        # Coluna superior com dois cards lado a lado
         layout_cards_top = [
             [
                 sg.Column(
@@ -131,7 +124,6 @@ class GuiStatsView:
             ]
         ]
 
-        # Tabela de ranking dos garçons 
         cols = ["ID", "Garçom", "Mesas Atend.", "Total Gorjetas", "Média/Mesa"]
         tabela_relatorio = sg.Table(
             values=valores_tabela,
@@ -175,7 +167,6 @@ class GuiStatsView:
             pad=(0, 5),
         )
 
-        # Área do gráfico de pratos mais pedidos 
         grafico_frame_layout = [
             [
                 sg.Text(
@@ -207,7 +198,6 @@ class GuiStatsView:
             pad=(10, 5),
         )
 
-        # Layout principal: título + cards + relatorio + gráfico + botões
         layout = [
             [
                 sg.Text(
@@ -258,12 +248,10 @@ class GuiStatsView:
             size=(900, 550),
         )
 
-        # Renderiza o gráfico já na abertura (se tiver dados)
         img_data_inicial = self._gerar_grafico_pratos()
         if img_data_inicial:
             window["-IMG_GRAFICO-"].update(data=img_data_inicial)
 
-        # Loop de eventos
         while True:
             event, values = window.read()
             if event in (sg.WINDOW_CLOSED, "-BTN_FECHAR-"):
@@ -288,7 +276,6 @@ class GuiStatsView:
         try:
             estatisticas = self._restaurante._pedido_controller.get_estatisticas_pratos()
         except AttributeError:
-            # Fallback se algo mudar na estrutura
             return b""
 
         if not estatisticas:

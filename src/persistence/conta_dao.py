@@ -1,5 +1,3 @@
-# persistence/conta_dao.py
-
 import os
 import pickle
 from typing import Dict, List, Tuple, Union
@@ -7,13 +5,11 @@ from typing import Dict, List, Tuple, Union
 from .abstract_dao import DAO
 from models.conta import Conta
 
-# tipo salvo no arquivo: (dict_de_contas, proximo_id)
 ContaData = Tuple[Dict[int, Conta], int]
 
 
 class ContaDAO(DAO):
     def __init__(self):
-        # Não chamamos super().__init__ aqui; gerenciamos nosso próprio arquivo
         self.__datasource = "contas.pkl"
         self._contas: Dict[int, Conta] = {}
         self._proximo_id: int = 1
@@ -21,7 +17,6 @@ class ContaDAO(DAO):
         try:
             self.__load_all()
         except (FileNotFoundError, EOFError, ValueError, pickle.UnpicklingError):
-            # Arquivo não existe / vazio / corrompido → recomeça do zero
             self._contas.clear()
             self._proximo_id = 1
             self.__dump_all()
@@ -38,7 +33,6 @@ class ContaDAO(DAO):
         with open(self.__datasource, "rb") as f:
             data = pickle.load(f)
 
-        # suporta formato antigo (só dict) e novo (dict, prox_id)
         if isinstance(data, tuple) and len(data) == 2:
             contas, prox_id = data
             self._contas = dict(contas)
@@ -49,11 +43,9 @@ class ContaDAO(DAO):
         else:
             raise ValueError("Formato de arquivo de contas inválido.")
 
-    # ------------------ API pública compatível com outros DAOs ------------------
 
     def add(self, key: int, obj: Conta) -> None:
         self._contas[key] = obj
-        # garante que o próximo id avance
         self._proximo_id = max(self._proximo_id, key + 1)
         self.__dump_all()
 

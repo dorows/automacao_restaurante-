@@ -1,5 +1,3 @@
-# controllers/pedido_controller.py
-
 from typing import List, Optional, Dict
 from collections import Counter
 
@@ -28,12 +26,9 @@ class PedidoController:
         self._cardapio = cardapio_controller
         self._pedido_dao = PedidoDAO()
 
-    # -------------------------------------------------------------------------
-    # Helpers internos
-    # -------------------------------------------------------------------------
 
     def _pedido_dict(self, p: Pedido) -> dict:
-        linhas = [str(it) for it in p.itens]  # usa __str__ do ItemPedido
+        linhas = [str(it) for it in p.itens]  
         return {
             "id_pedido": p.id_pedido,
             "mesa_id": p.mesa.id_mesa,
@@ -45,15 +40,10 @@ class PedidoController:
     def _find_pedido_by_status(
         self, conta: Conta, status: StatusPedido
     ) -> Optional[Pedido]:
-        # percorre de trás pra frente pra pegar o pedido mais recente com aquele status
         for p in reversed(conta.pedidos):
             if p.status == status:
                 return p
         return None
-
-    # -------------------------------------------------------------------------
-    # API principal
-    # -------------------------------------------------------------------------
 
     def encontrar_pedido_por_id(self, id_pedido: int) -> Optional[Pedido]:
         return self._pedido_dao.get(id_pedido)
@@ -68,7 +58,6 @@ class PedidoController:
     def adicionar_item_a_conta(
         self, conta: Conta, prato: Prato, quantidade: int, observacao: str = ""
     ) -> None:
-        # tenta achar pedido aberto na conta
         pedido_alvo = next(
             (p for p in conta.pedidos if p.status == StatusPedido.ABERTO),
             None,
@@ -87,10 +76,7 @@ class PedidoController:
             )
             conta.adicionar_pedido(pedido_alvo)
 
-        novo_item = ItemPedido(prato=prato, quantidade=quantidade, observacao=observacao)
-        pedido_alvo.adicionar_item(novo_item)
-
-        # persiste o pedido e a conta atualizados
+        pedido_alvo.adicionar_item(prato=prato, quantidade=quantidade)
         self._pedido_dao.update(pedido_alvo.id_pedido, pedido_alvo)
         self._contas.atualizar_conta(conta)
 
@@ -154,10 +140,6 @@ class PedidoController:
             for item in pedido.itens:
                 contagem_pratos[item.prato] += item.quantidade
         return contagem_pratos
-
-    # -------------------------------------------------------------------------
-    # Conversões para a View
-    # -------------------------------------------------------------------------
 
     def conta_para_view(self, conta: Conta) -> dict:
         itens = []

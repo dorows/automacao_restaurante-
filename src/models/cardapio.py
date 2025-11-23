@@ -1,5 +1,5 @@
 from typing import List, Optional
-from .prato import Prato  # Usando import relativo
+from .prato import Prato 
 
 class Cardapio:
 

@@ -7,14 +7,12 @@ from persistence.mesa_dao import MesaDAO
 
 class MesaController:
     def __init__(self):
-        # Substitui a lista interna pelo DAO
         self._mesa_dao = MesaDAO()
 
     def listar_mesas(self) -> List[Mesa]:
         return list(self._mesa_dao.get_all())
 
     def encontrar_mesa_por_numero(self, numero_mesa: int) -> Optional[Mesa]:
-        # Busca a mesa diretamente do DAO
         return self._mesa_dao.get(numero_mesa)
 
     def encontrar_mesa_livre(self, qtd_pessoas: int) -> Optional[Mesa]:
@@ -44,7 +42,7 @@ class MesaController:
             raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
         
         mesa.liberar() 
-        self._mesa_dao.update(numero_mesa, mesa) # PERSISTÊNCIA
+        self._mesa_dao.update(numero_mesa, mesa) 
         return mesa
 
     def limpar_mesa(self, numero_mesa: int) -> Mesa:
@@ -53,11 +51,10 @@ class MesaController:
             raise ValueError(f"Mesa com número {numero_mesa} não encontrada.")
         
         mesa.limpar() 
-        self._mesa_dao.update(numero_mesa, mesa) # PERSISTÊNCIA
+        self._mesa_dao.update(numero_mesa, mesa) 
         return mesa
 
     def designar_garcom(self, mesa: Mesa, garcom: Garcom) -> None:
-        # NOTE: Aqui alteramos a mesa, mas não o garçom. O garçom terá o próprio DAO.
         if not isinstance(mesa, Mesa) or not isinstance(garcom, Garcom):
             raise TypeError("Argumentos inválidos para designar garçom.")
 
@@ -73,11 +70,11 @@ class MesaController:
         self._mesa_dao.update(mesa.id_mesa, mesa)
 
     def cadastrar_mesa(self, id_mesa: int, capacidade: int) -> Mesa:
-        if self._mesa_dao.get(id_mesa): # Verifica existência pelo DAO
+        if self._mesa_dao.get(id_mesa):
             raise ValueError(f"Já existe uma mesa com o ID {id_mesa}.")
 
         nova = Mesa(id_mesa=id_mesa, capacidade=capacidade)
-        self._mesa_dao.add(id_mesa, nova) # PERSISTÊNCIA: Adiciona no DAO
+        self._mesa_dao.add(id_mesa, nova)
         return nova
 
     def mesa_para_dict(self, mesa: Mesa) -> Dict[str, object]:

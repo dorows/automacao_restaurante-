@@ -45,12 +45,13 @@ class Pedido:
     @property
     def itens(self) -> List[ItemPedido]: return self._itens.copy()
 
-    def adicionar_item(self, item: ItemPedido) -> None:
-        if not isinstance(item, ItemPedido):
-            raise TypeError("Apenas um objeto ItemPedido pode ser adicionado.")
+    def adicionar_item(self, prato: Prato, quantidade: int, observacao: str = "") -> None:
+
         if self.status != StatusPedido.ABERTO:
-            raise StatusPedidoInvalidoError(f"Não é possível adicionar itens ao Pedido {self.id_pedido}, pois seu status é '{self.status.value}'.")
-        self._itens.append(item)
+            raise ValueError(f"Não é possível adicionar itens ao Pedido {self.id_pedido}, pois seu status é '{self.status.value}'.")
+        
+        novo_item = ItemPedido(prato, quantidade, observacao)
+        self._itens.append(novo_item)
 
     def calcular_subtotal_pedido(self) -> float:
         return sum(item.calcular_subtotal() for item in self._itens)

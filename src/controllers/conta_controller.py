@@ -1,5 +1,3 @@
-# controllers/conta_controller.py
-
 from typing import List, Optional
 
 from models.conta import Conta
@@ -24,11 +22,9 @@ class ContaController:
         novo_id = self._gerar_id_conta()
         nova_conta = Conta(id_conta=novo_id, grupo_cliente=grupo_cliente, mesa=mesa)
 
-        # tenta registrar também na própria mesa (se ela tiver esse atributo)
         try:
             mesa.conta = nova_conta
         except AttributeError:
-            # se a classe Mesa não tiver 'conta', ignorar silenciosamente
             pass
 
         self._dao.add(novo_id, nova_conta)
@@ -41,7 +37,6 @@ class ContaController:
         self._dao.update(conta.id_conta, conta)
 
     def atualizar_conta(self, conta: Conta) -> None:
-        """Atualiza a conta no DAO sempre que algo nela mudar (pedidos, gorjeta etc.)."""
         if not isinstance(conta, Conta):
             raise TypeError("Objeto fornecido não é uma Conta válida.")
         self._dao.update(conta.id_conta, conta)

@@ -38,7 +38,6 @@ class FuncionarioDAO(DAO):
         else:
             raise FileNotFoundError
 
-    # Sobrescrevemos os métodos públicos para interagir com o novo cache privado
     
     def add(self, key: int, obj: Funcionario):
         self._funcionarios[key] = obj

@@ -36,7 +36,6 @@ class GrupoClienteDAO(DAO):
         else:
             raise FileNotFoundError
 
-    # Sobrescrevemos os métodos públicos para interagir com o cache privado
     
     def add(self, key: int, obj: GrupoCliente):
         self._grupos[key] = obj

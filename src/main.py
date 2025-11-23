@@ -5,7 +5,7 @@ def main() -> None:
     try:
         run_gui(app_parts)
     except Exception as e:
-        print(f"[ERRO FATAL NA INICIALIZAÇÃO] {e}")
+        pass
 
 if __name__ == "__main__":
     main()

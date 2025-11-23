@@ -1,4 +1,3 @@
-# controllers/cardapio_controller.py
 from typing import Optional, List, Dict, Any
 from models.prato import Prato
 from persistence.cardapio_dao import CardapioDAO 
@@ -27,15 +26,10 @@ class CardapioController:
         prato = self.buscar_prato_por_id(id_prato)
         if not prato:
             raise ValueError(f"Prato {id_prato} não encontrado.")
-        
         if preco < 0:
             raise ValueError("O preço não pode ser negativo.")
-
-        # Atualiza os atributos
         prato.nome = nome
-        prato.preco = float(preco)
-        # Nota: Se quiser editar descrição, adicione aqui prato.descricao = nova_desc
-        
+        prato.preco = float(preco)        
         self._cardapio_dao.update(id_prato, prato)
 
     def remover_prato(self, id_prato: int) -> None:
@@ -50,7 +44,6 @@ class CardapioController:
 
     def listar_pratos_para_view(self) -> List[Dict[str, object]]:
         out: List[Dict[str, object]] = []
-        # Ordena por ID para ficar bonito na tabela
         lista_ordenada = sorted(self.pratos, key=lambda p: p.id_prato)
         
         for p in lista_ordenada:
@@ -61,8 +54,6 @@ class CardapioController:
             })
         return out
     
-    # Método auxiliar para a nova GUI
     def get_dados_tabela(self) -> List[List[Any]]:
-        """Retorna lista de listas [ID, Nome, Preço] para o sg.Table"""
         lista_ordenada = sorted(self.pratos, key=lambda p: p.id_prato)
         return [[p.id_prato, p.nome, f"R$ {p.preco:.2f}"] for p in lista_ordenada]

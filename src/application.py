@@ -1,8 +1,7 @@
-# src/application.py
 import FreeSimpleGUI as sg
 from typing import Any, Dict, List, Optional, Tuple
 
-# Controllers
+
 from controllers.restaurante_controller import RestauranteController
 from controllers.pedido_controller import PedidoController
 from controllers.mesa_controller import MesaController
@@ -12,17 +11,15 @@ from controllers.funcionario_controller import FuncionarioController
 from controllers.cardapio_controller import CardapioController
 from controllers.grupo_cliente_controller import ClienteController
 
-# Views
 from views.gui_main_view import GuiMainView
 from views.gui_equipe_view import GuiEquipeView
 from views.gui_stats_view import GuiStatsView
 from views.gui_mesa_view import GuiMesaView
 from views.gui_cardapio_view import GuiCardapioView
-from views.gui_checkout_view import GuiCheckoutView # Nova View
+from views.gui_checkout_view import GuiCheckoutView 
 
 from views.ui_theme import configure_global_ui
 
-# --- Helpers de Fluxo (Movidos do antigo main.py) ---
 
 def _get_selected_mesa_id(values: Dict[str, Any], mesas_cache: List[Dict[str, Any]]) -> Optional[int]:
     selecionadas = values.get("-TABELA_MESAS-")
@@ -95,7 +92,7 @@ def _atualizar_pedidos_da_mesa(
 # --- Funções Principais de Construção e Execução ---
 
 def build_app_gui() -> Dict[str, Any]:
-    configure_global_ui() # Configura tema
+    configure_global_ui() 
 
     cliente_ctrl = ClienteController()
     fila_ctrl = FilaController(cliente_controller=cliente_ctrl)
@@ -249,7 +246,6 @@ def run_gui(app_parts: Dict[str, Any]) -> None:
                     gui.set_status("Finalização cancelada pelo usuário.")
                     continue
 
-                # Processa o pagamento no Controller
                 extrato_final = restaurante.finalizar_atendimento(mesa_id_selecionada, gorjeta)
 
                 total = float(extrato_final.get("total", 0.0))

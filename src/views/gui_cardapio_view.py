@@ -8,7 +8,6 @@ class GuiCardapioView:
         sg.theme("DarkTeal9")
 
     def show_cardapio_window(self) -> None:
-        # Helper para pegar dados frescos
         def refresh_data():
             return self._cardapio_ctrl.get_dados_tabela()
 
@@ -28,7 +27,6 @@ class GuiCardapioView:
             select_mode=sg.TABLE_SELECT_MODE_BROWSE
         )
 
-        # Layout de Edição/Criação
         frame_inputs = sg.Frame("Editar / Adicionar Item", [
             [
                 sg.Text("ID:", size=(3,1)), sg.Input(key="-ID-", size=(5,1)),
@@ -61,7 +59,6 @@ class GuiCardapioView:
                 break
 
             try:
-                # --- SELEÇÃO NA TABELA ---
                 if event == "-TBL_MENU-":
                     selecao = values.get("-TBL_MENU-")
                     if selecao:
@@ -69,23 +66,19 @@ class GuiCardapioView:
                         current_data = refresh_data()
                         
                         if idx < len(current_data):
-                            row = current_data[idx] # [ID, Nome, Preço Formatado]
+                            row = current_data[idx] 
                             
-                            # Preenche inputs
                             window["-ID-"].update(row[0])
-                            window["-ID-"].update(disabled=True) # ID não edita
+                            window["-ID-"].update(disabled=True) 
                             window["-NOME-"].update(row[1])
                             
-                            # Limpa formatação "R$ " para editar número
                             preco_limpo = str(row[2]).replace("R$ ", "").replace(",", ".")
                             window["-PRECO-"].update(preco_limpo)
                             
-                            # Habilita botões
                             window["-BTN_EDIT-"].update(disabled=False)
                             window["-BTN_DEL-"].update(disabled=False)
                             window["-BTN_ADD-"].update(disabled=True)
                     else:
-                        # Limpa tudo
                         window["-ID-"].update(disabled=False, value="")
                         window["-NOME-"].update("")
                         window["-PRECO-"].update("")
@@ -94,7 +87,6 @@ class GuiCardapioView:
                         window["-BTN_DEL-"].update(disabled=True)
                         window["-BTN_ADD-"].update(disabled=False)
 
-                # --- ADICIONAR ---
                 elif event == "-BTN_ADD-":
                     id_p = int(values["-ID-"])
                     nome = values["-NOME-"]
@@ -106,15 +98,13 @@ class GuiCardapioView:
                     window["-STATUS-"].update(f"Prato '{nome}' adicionado!", text_color="green")
                     window["-TBL_MENU-"].update(values=refresh_data())
                     
-                    # Limpa inputs
                     window["-ID-"].update("")
                     window["-NOME-"].update("")
                     window["-PRECO-"].update("")
                     window["-DESC-"].update("")
 
-                # --- EDITAR ---
                 elif event == "-BTN_EDIT-":
-                    id_p = int(values["-ID-"]) # ID travado no input
+                    id_p = int(values["-ID-"]) 
                     nome = values["-NOME-"]
                     preco = float(values["-PRECO-"].replace(",", "."))
                     
@@ -123,7 +113,6 @@ class GuiCardapioView:
                     window["-STATUS-"].update(f"Prato {id_p} atualizado.", text_color="green")
                     window["-TBL_MENU-"].update(values=refresh_data())
                     
-                    # Reseta estado
                     window["-ID-"].update(disabled=False, value="")
                     window["-NOME-"].update("")
                     window["-PRECO-"].update("")
@@ -131,15 +120,11 @@ class GuiCardapioView:
                     window["-BTN_DEL-"].update(disabled=True)
                     window["-BTN_ADD-"].update(disabled=False)
 
-                # --- REMOVER ---
                 elif event == "-BTN_DEL-":
                     id_p = int(values["-ID-"])
                     self._cardapio_ctrl.remover_prato(id_p)
-                    
                     window["-STATUS-"].update(f"Prato {id_p} removido.", text_color="red")
                     window["-TBL_MENU-"].update(values=refresh_data())
-                    
-                    # Reseta estado
                     window["-ID-"].update(disabled=False, value="")
                     window["-NOME-"].update("")
                     window["-PRECO-"].update("")

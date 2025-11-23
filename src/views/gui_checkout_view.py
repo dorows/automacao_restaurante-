@@ -1,13 +1,7 @@
-# src/views/gui_checkout_view.py
 import FreeSimpleGUI as sg
 from typing import Dict, Any, List, Tuple
 
 class GuiCheckoutView:
-    """
-    Classe responsável apenas por exibir a janela de checkout e retornar
-    os valores de gorjeta e confirmação.
-    """
-    
     @staticmethod
     def abrir_janela_checkout(extrato: Dict[str, Any]) -> Tuple[float, bool]:
         mesa_id = extrato.get("mesa_id")
