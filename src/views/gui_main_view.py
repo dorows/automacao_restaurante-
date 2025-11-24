@@ -91,7 +91,7 @@ class GuiMainView:
 
         header_row = [
             sg.Text(
-                "🍽️  Automação de Restaurante",
+                "Automação de Restaurante",
                 font=("Segoe UI", 20, "bold"),
             ),
             sg.Push(),
